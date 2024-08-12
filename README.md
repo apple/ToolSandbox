@@ -543,7 +543,14 @@ shape: (15, 5)
 ## Citation
 
 To cite _ToolSandbox_:
-
-TODO(tholleis): Add Bibtex entry
 ```text
+@misc{lu2024toolsandboxstatefulconversationalinteractive,
+      title={ToolSandbox: A Stateful, Conversational, Interactive Evaluation Benchmark for LLM Tool Use Capabilities}, 
+      author={Jiarui Lu and Thomas Holleis and Yizhe Zhang and Bernhard Aumayer and Feng Nan and Felix Bai and Shuang Ma and Shen Ma and Mengyu Li and Guoli Yin and Zirui Wang and Ruoming Pang},
+      year={2024},
+      eprint={2408.04682},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2408.04682}, 
+}
 ```
