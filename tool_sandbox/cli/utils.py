@@ -22,7 +22,7 @@ from tool_sandbox.roles.anthropic_api_agent import (
 )
 from tool_sandbox.roles.base_role import BaseRole
 from tool_sandbox.roles.cli_role import CliAgent, CliUser
-from tool_sandbox.roles.cohere_agent import CohereAgent
+from tool_sandbox.roles.cohere_api_agent import CohereAPIAgent
 from tool_sandbox.roles.execution_environment import ExecutionEnvironment
 from tool_sandbox.roles.gemini_agent import GeminiAgent
 from tool_sandbox.roles.gorilla_api_agent import GorillaAPIAgent
@@ -84,11 +84,9 @@ AGENT_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
         model_name="gemini-1.5-flash-001"
     ),
     RoleImplType.Cli: CliAgent,
-    RoleImplType.Cohere_Command_R: lambda: CohereAgent(
-        model_name="CohereForAI/c4ai-command-r-v01"
-    ),
-    RoleImplType.Cohere_Command_R_Plus: lambda: CohereAgent(
-        model_name="CohereForAI/c4ai-command-r-plus"
+    RoleImplType.Cohere_Command_R: lambda: CohereAPIAgent(model_name="command-r"),
+    RoleImplType.Cohere_Command_R_Plus: lambda: CohereAPIAgent(
+        model_name="command-r-plus"
     ),
     RoleImplType.Unhelpful: UnhelpfulAgent,
 }

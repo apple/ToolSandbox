@@ -34,23 +34,23 @@ The following table shows the required environment variables to set depending on
 
 The following table shows the required environment variables to set depending on the agent type:
 
-| Agent Type            | ANTHROPIC_API_KEY | HF_TOKEN | OPENAI_API_KEY | OPENAI_BASE_URL | GOOGLE_CLOUD_PROJECT or CLOUD_ML_PROJECT_ID | GOOGLE_CLOUD_REGION or CLOUD_ML_REGION |
-| --------------------- | :---------------: | :------: | :------------: | :-------------: | :-----------------------------------------: | :------------------------------------: |
-| Claude_3_Haiku        | ✅                |          |                |                 |                                             |                                        |
-| Claude_3_Opus         | ✅                |          |                |                 |                                             |                                        |
-| Claude_3_Sonnet       | ✅                |          |                |                 |                                             |                                        |
-| Cli                   |                   |          |                |                 |                                             |                                        |
-| Cohere_Command_R      |                   |          |                | ✅              |                                             |                                        |
-| Cohere_Command_R_Plus |                   |          |                | ✅              |                                             |                                        |
-| GPT_3_5_0125          |                   |          | ✅             |                 |                                             |                                        |
-| GPT_4_0125            |                   |          | ✅             |                 |                                             |                                        |
-| GPT_4_o_2024_05_13    |                   |          | ✅             |                 |                                             |                                        |
-| Gemini_1_0            |                   |          |                |                 | ✅                                          | ✅                                     |
-| Gemini_1_5            |                   |          |                |                 | ✅                                          | ✅                                     |
-| Gemini_1_5_Flash      |                   |          |                |                 | ✅                                          | ✅                                     |
-| Gorilla               |                   |          |                | ✅              |                                             |                                        |
-| Hermes                |                   |          |                | ✅              |                                             |                                        |
-| Mistral               |                   |          |                | ✅              |                                             |                                        |
+| Agent Type            | ANTHROPIC_API_KEY | CO_API_KEY | HF_TOKEN | OPENAI_API_KEY | OPENAI_BASE_URL | GOOGLE_CLOUD_PROJECT or CLOUD_ML_PROJECT_ID | GOOGLE_CLOUD_REGION or CLOUD_ML_REGION |
+| --------------------- | :---------------: |------------| :------: | :------------: |:---------------:| :-----------------------------------------: | :------------------------------------: |
+| Claude_3_Haiku        | ✅                |            |          |                |                 |                                             |                                        |
+| Claude_3_Opus         | ✅                |            |          |                |                 |                                             |                                        |
+| Claude_3_Sonnet       | ✅                |            |          |                |                 |                                             |                                        |
+| Cli                   |                   |            |          |                |                 |                                             |                                        |
+| Cohere_Command_R      |                   | ✅         |          |                |                 |                                             |                                        |
+| Cohere_Command_R_Plus |                   | ✅         |          |                |                 |                                             |                                        |
+| GPT_3_5_0125          |                   |            |          | ✅             |                 |                                             |                                        |
+| GPT_4_0125            |                   |            |          | ✅             |                 |                                             |                                        |
+| GPT_4_o_2024_05_13    |                   |            |          | ✅             |                 |                                             |                                        |
+| Gemini_1_0            |                   |            |          |                |                 | ✅                                          | ✅                                     |
+| Gemini_1_5            |                   |            |          |                |                 | ✅                                          | ✅                                     |
+| Gemini_1_5_Flash      |                   |            |          |                |                 | ✅                                          | ✅                                     |
+| Gorilla               |                   |            |          |                | ✅              |                                             |                                        |
+| Hermes                |                   |            |          |                | ✅              |                                             |                                        |
+| Mistral               |                   |            |          |                | ✅              |                                             |                                        |
 
 The search tools in the ToolSandbox use [RapidAPI](https://rapidapi.com/hub) so in order to run those scenarios you need to have an API key and expose it in an environment variable called `RAPID_API_KEY`. Using models from the Gemini family requires setting up google authentication, e.g. by using [application default credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc).
 
