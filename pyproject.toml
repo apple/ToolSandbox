@@ -55,6 +55,7 @@ dependencies = [
     "tree-sitter-languages==1.10.2",
     "typing_extensions==4.12.2",
     "vertexai==1.49.0",
+    "cohere==5.8.1",
 ]
 
 [project.urls]
