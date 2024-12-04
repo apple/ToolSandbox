@@ -32,22 +32,29 @@ from tool_sandbox.roles.openai_api_agent import (
     GPT_3_5_0125_Agent,
     GPT_4_0125_Agent,
     GPT_4_o_2024_05_13_Agent,
+    GPT_4_o_2024_08_06_Agent
+)
+from tool_sandbox.roles.athene_api_agent import (
+    AtheneV2Agent_Agent,
 )
 from tool_sandbox.roles.openai_api_user import (
     GPT_3_5_0125_User,
     GPT_4_0125_User,
     GPT_4_o_2024_05_13_User,
+    GPT_4_o_2024_08_06_User
 )
 from tool_sandbox.roles.unhelpful_agent import UnhelpfulAgent
 from tool_sandbox.scenarios import named_scenarios
 
 
 class RoleImplType(StrEnum):
+    AtheneV2Agent = auto()
     Hermes = auto()
     Gorilla = auto()
     GPT_3_5_0125 = auto()
     GPT_4_0125 = auto()
     GPT_4_o_2024_05_13 = auto()
+    GPT_4_o_2024_08_06 = auto()
     Claude_3_Opus = auto()
     Claude_3_Sonnet = auto()
     Claude_3_Haiku = auto()
@@ -63,6 +70,7 @@ class RoleImplType(StrEnum):
 
 
 AGENT_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
+    RoleImplType.AtheneV2Agent: AtheneV2Agent_Agent,
     RoleImplType.Hermes: lambda: HermesAPIAgent(
         model_name="NousResearch/Hermes-2-Pro-Mistral-7B"
     ),
@@ -75,6 +83,7 @@ AGENT_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
     RoleImplType.GPT_3_5_0125: GPT_3_5_0125_Agent,
     RoleImplType.GPT_4_0125: GPT_4_0125_Agent,
     RoleImplType.GPT_4_o_2024_05_13: GPT_4_o_2024_05_13_Agent,
+    RoleImplType.GPT_4_o_2024_08_06: GPT_4_o_2024_08_06_Agent,
     RoleImplType.Claude_3_Opus: ClaudeOpusAgent,
     RoleImplType.Claude_3_Sonnet: ClaudeSonnetAgent,
     RoleImplType.Claude_3_Haiku: ClaudeHaikuAgent,
@@ -97,6 +106,7 @@ USER_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
     RoleImplType.GPT_3_5_0125: GPT_3_5_0125_User,
     RoleImplType.GPT_4_0125: GPT_4_0125_User,
     RoleImplType.GPT_4_o_2024_05_13: GPT_4_o_2024_05_13_User,
+    RoleImplType.GPT_4_o_2024_08_06: GPT_4_o_2024_08_06_User,
     RoleImplType.Cli: CliUser,
 }
 

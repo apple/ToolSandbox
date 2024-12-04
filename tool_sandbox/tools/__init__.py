@@ -2,6 +2,7 @@
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
 
 # Make sure to import submodule here so that it's visible to inspect
+import tool_sandbox.tools.chat
 import tool_sandbox.tools.contact
 import tool_sandbox.tools.messaging
 import tool_sandbox.tools.rapid_api_search_tools

@@ -198,3 +198,6 @@ class GPT_4_0125_User(OpenAIAPIUser):
 
 class GPT_4_o_2024_05_13_User(OpenAIAPIUser):
     model_name = "gpt-4o-2024-05-13"
+
+class GPT_4_o_2024_08_06_User(OpenAIAPIUser):
+    model_name = "gpt-4o-2024-08-06"

@@ -212,7 +212,7 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
         ],
     )
     # end_conversation should always be allowed
-    scenario.starting_context.tool_allow_list = ["end_conversation"]
+    scenario.starting_context.tool_allow_list = ["end_conversation", "chat"]
     # Base scenario
     scenarios["base"] = scenario
     # Create variants that flips low_battery_mode / wifi / location_service / cellular comparing to base scenario

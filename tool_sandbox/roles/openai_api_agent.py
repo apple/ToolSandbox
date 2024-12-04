@@ -94,6 +94,7 @@ class OpenAIAPIAgent(BaseRole):
         openai_response_message = response.choices[0].message
         # Message contains no tool call, aka addressed to user
         if openai_response_message.tool_calls is None:
+            print ("CONTENT", openai_response_message)
             assert openai_response_message.content is not None
             response_messages = [
                 Message(
@@ -151,6 +152,8 @@ class OpenAIAPIAgent(BaseRole):
         Returns:
             OpenAI API chat completion object
         """
+        import json
+        print (json.dumps(openai_messages, indent=4))
         with all_logging_disabled():
             return self.openai_client.chat.completions.create(
                 model=self.model_name,
@@ -169,3 +172,6 @@ class GPT_3_5_0125_Agent(OpenAIAPIAgent):
 
 class GPT_4_o_2024_05_13_Agent(OpenAIAPIAgent):
     model_name = "gpt-4o-2024-05-13"
+
+class GPT_4_o_2024_08_06_Agent(OpenAIAPIAgent):
+    model_name = "gpt-4o-2024-08-06"
