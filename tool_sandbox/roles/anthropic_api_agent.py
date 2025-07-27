@@ -94,16 +94,13 @@ def to_tool_call_message(
     """
     # The code below would fail when e.g. called with a `TextBlock` object, but the
     # assertion will give a clear error message.
-    assert tool_use_block.type == "tool_use", (
-        "This function must only be called with content blocks of type 'tool_use', but "
-        f"got '{tool_use_block.type}'."
-    )
+    assert (
+        tool_use_block.type == "tool_use"
+    ), f"This function must only be called with content blocks of type 'tool_use', but got '{tool_use_block.type}'."
     return Message(
         sender=sender,
         recipient=RoleType.EXECUTION_ENVIRONMENT,
-        content=tool_use_block_to_python_code(
-            execution_facing_tool_name, tool_use_block, available_tool_names
-        ),
+        content=tool_use_block_to_python_code(execution_facing_tool_name, tool_use_block, available_tool_names),
         openai_tool_call_id=tool_use_block.id,
         openai_function_name=tool_use_block.name,
     )
@@ -122,6 +119,7 @@ def response_to_messages(
         sender:               The value of the sender in the tool sandbox message being
                               created.
         available_tool_names: Set of available tools.
+        agent_to_execution_facing_tool_name: Mapping from agent facing tool name to execution facing tool name.
 
     Returns:
         Messages in the tool sandbox format.
@@ -133,18 +131,15 @@ def response_to_messages(
     assert response.stop_reason is not None
 
     if response.stop_reason == "tool_use":
-        assert len(response.content) > 0 and any(
-            isinstance(content_block, anthropic.types.beta.tools.ToolUseBlock)
-            for content_block in response.content
+        assert len(response.content) > 0 and any(  # noqa: PT018
+            isinstance(content_block, anthropic.types.beta.tools.ToolUseBlock) for content_block in response.content
         ), "At least 1 ToolUseBlock content element is needed for tool use, but got 0."
         # The content can have mixed blocks like text and tool use blocks.
         return [
             to_tool_call_message(
                 content_block,
                 sender,
-                execution_facing_tool_name=agent_to_execution_facing_tool_name[
-                    content_block.name
-                ],
+                execution_facing_tool_name=agent_to_execution_facing_tool_name[content_block.name],
                 available_tool_names=available_tool_names,
             )
             for content_block in response.content
@@ -152,9 +147,7 @@ def response_to_messages(
         ]
 
     # No tool use needed. Simply return the text response.
-    assert (
-        len(response.content) == 1
-    ), f"Only a single content element is supported, but got {len(response.content)}."
+    assert len(response.content) == 1, f"Only a single content element is supported, but got {len(response.content)}."
     text_block = response.content[0]
     assert isinstance(
         text_block, anthropic.types.text_block.TextBlock
@@ -196,8 +189,7 @@ def has_tool_result_block(
         True if the message contains at least one tool result, false otherwise.
     """
     return isinstance(anthropic_message, dict) and any(
-        isinstance(block, dict) and block.get("type", "") == "tool_result"
-        for block in anthropic_message["content"]
+        isinstance(block, dict) and block.get("type", "") == "tool_result" for block in anthropic_message["content"]
     )
 
 
@@ -234,8 +226,7 @@ def has_tool_use_block(
         True if the message contains at least one tool use, false otherwise.
     """
     return isinstance(anthropic_message, dict) and any(
-        isinstance(block, anthropic.types.beta.tools.ToolUseBlock)
-        for block in anthropic_message["content"]
+        isinstance(block, anthropic.types.beta.tools.ToolUseBlock) for block in anthropic_message["content"]
     )
 
 
@@ -283,72 +274,47 @@ def to_anthropic_message_collection(
 
     for message in messages:
         if message.sender == RoleType.SYSTEM and message.recipient == RoleType.AGENT:
-            assert (
-                system_prompt is anthropic.NOT_GIVEN
-            ), f"System prompt is already set to '{system_prompt}'."
+            assert system_prompt is anthropic.NOT_GIVEN, f"System prompt is already set to '{system_prompt}'."
             system_prompt = message.content
         elif message.sender == RoleType.USER and message.recipient == RoleType.AGENT:
             anthropic_messages.append(
-                anthropic.types.beta.tools.ToolsBetaMessageParam(
-                    content=message.content, role="user"
-                )
+                anthropic.types.beta.tools.ToolsBetaMessageParam(content=message.content, role="user")
             )
-        elif (
-            message.sender == RoleType.EXECUTION_ENVIRONMENT
-            and message.recipient == RoleType.AGENT
-        ):
+        elif message.sender == RoleType.EXECUTION_ENVIRONMENT and message.recipient == RoleType.AGENT:
             # The API requires one to group multiple tool results into a single message.
             # Otherwise one gets a failure complaining about a tool result for an
             # unknown tool use.
             tool_result_block = to_anthropic_tool_result_block(message)
-            if len(anthropic_messages) > 0 and has_tool_result_block(
-                anthropic_messages[-1]
-            ):
+            if len(anthropic_messages) > 0 and has_tool_result_block(anthropic_messages[-1]):
                 # The content is of type `Union[str, Iterable[...]]`, but in this case
                 # it is guaranteed to be a list.
                 assert isinstance(anthropic_messages[-1]["content"], list)  # < mypy
                 anthropic_messages[-1]["content"].append(tool_result_block)
             else:
                 anthropic_messages.append(
-                    anthropic.types.beta.tools.ToolsBetaMessageParam(
-                        content=[tool_result_block], role="user"
-                    )
+                    anthropic.types.beta.tools.ToolsBetaMessageParam(content=[tool_result_block], role="user")
                 )
-        elif (
-            message.sender == RoleType.AGENT
-            and message.recipient == RoleType.EXECUTION_ENVIRONMENT
-        ):
+        elif message.sender == RoleType.AGENT and message.recipient == RoleType.EXECUTION_ENVIRONMENT:
             # Add tool call. Note that the API requires one to group multiple tool
             # results into a single message.
             tool_use_block = to_anthropic_tool_use_block(message)
-            if len(anthropic_messages) > 0 and has_tool_use_block(
-                anthropic_messages[-1]
-            ):
+            if len(anthropic_messages) > 0 and has_tool_use_block(anthropic_messages[-1]):
                 # The content is of type `Union[str, Iterable[...]]`, but in this case
                 # it is guaranteed to be a list.
                 assert isinstance(anthropic_messages[-1]["content"], list)  # < mypy
                 anthropic_messages[-1]["content"].append(tool_use_block)
             else:
                 anthropic_messages.append(
-                    anthropic.types.beta.tools.ToolsBetaMessageParam(
-                        content=[tool_use_block], role="assistant"
-                    )
+                    anthropic.types.beta.tools.ToolsBetaMessageParam(content=[tool_use_block], role="assistant")
                 )
         elif message.sender == RoleType.AGENT and message.recipient == RoleType.USER:
             anthropic_messages.append(
-                anthropic.types.beta.tools.ToolsBetaMessageParam(
-                    content=message.content, role="assistant"
-                )
+                anthropic.types.beta.tools.ToolsBetaMessageParam(content=message.content, role="assistant")
             )
         else:
-            raise ValueError(
-                "Unrecognized sender recipient pair "
-                f"{(message.sender, message.recipient)}"
-            )
+            raise ValueError(f"Unrecognized sender recipient pair {(message.sender, message.recipient)}")
 
-    return AnthropicMessageCollection(
-        messages=anthropic_messages, system_prompt=system_prompt
-    )
+    return AnthropicMessageCollection(messages=anthropic_messages, system_prompt=system_prompt)
 
 
 class AnthropicAPIAgent(BaseRole):
@@ -358,6 +324,7 @@ class AnthropicAPIAgent(BaseRole):
     model_name: str
 
     def __init__(self) -> None:
+        """Initialize the Anthropic API agent."""
         # By default, the API looks for the `ANTHROPIC_API_KEY` environment variable.
         self.client = anthropic.Anthropic()
 
@@ -370,7 +337,7 @@ class AnthropicAPIAgent(BaseRole):
         httpx_logger.setLevel(logging.WARNING)
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
 
         Specifically, interprets system, user, execution environment messages and sends out NL response to user, or
         code snippet to execution environment.
@@ -399,21 +366,18 @@ class AnthropicAPIAgent(BaseRole):
         # Get tools if most recent message is from user
         available_tools = self.get_available_tools()
         anthropic_tools = (
-            [
-                convert_to_anthropic_tool(name, tool)
-                for name, tool in available_tools.items()
-            ]
-            if messages[-1].sender == RoleType.USER
-            or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
+            [convert_to_anthropic_tool(name, tool) for name, tool in available_tools.items()]
+            if messages[-1].sender == RoleType.USER or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
             else anthropic.NOT_GIVEN
         )
         # Not sure why Mypy infers the type of `anthropic_tools` to be `object`. The
         # pylance tooltip in VSCode correctly says `list[ToolParam] | NotGiven` (even
         # without the cast).
+        # ? mypy complains that cast has incompatible types.
         anthropic_tools = cast(
-            Union[Iterable[anthropic.types.beta.tools.ToolParam], anthropic.NotGiven],
+            "Union[Iterable[anthropic.types.beta.tools.ToolParam], anthropic.NotGiven]",
             anthropic_tools,
-        )
+        )  # type: ignore
         # Convert from tool sandbox message to Anthropic message format.
         message_collection = to_anthropic_message_collection(messages=messages)
         # Call model
@@ -425,9 +389,7 @@ class AnthropicAPIAgent(BaseRole):
 
         # Convert the response to internal data types.
         available_tool_names = set(available_tools.keys())
-        agent_to_execution_tool_name = (
-            get_current_context().get_agent_to_execution_facing_tool_name()
-        )
+        agent_to_execution_tool_name = get_current_context().get_agent_to_execution_facing_tool_name()
         response_messages = response_to_messages(
             response,
             sender=self.role_type,
@@ -445,11 +407,9 @@ class AnthropicAPIAgent(BaseRole):
         self,
         anthropic_messages: list[anthropic.types.beta.tools.ToolsBetaMessageParam],
         system: Union[str, anthropic.NotGiven],
-        anthropic_tools: Union[
-            Iterable[anthropic.types.beta.tools.ToolParam], anthropic.NotGiven
-        ],
+        anthropic_tools: Union[Iterable[anthropic.types.beta.tools.ToolParam], anthropic.NotGiven],
     ) -> anthropic.types.beta.tools.ToolsBetaMessage:
-        """Run OpenAI model inference
+        """Run Anthropic model inference.
 
         Args:
             anthropic_messages:  Messages in Anthropic format to send to the LLM.
@@ -490,12 +450,18 @@ class AnthropicAPIAgent(BaseRole):
 
 
 class ClaudeOpusAgent(AnthropicAPIAgent):
+    """Claude Opus agent."""
+
     model_name = "claude-3-opus-20240229"
 
 
 class ClaudeSonnetAgent(AnthropicAPIAgent):
+    """Claude Sonnet agent."""
+
     model_name = "claude-3-sonnet-20240229"
 
 
 class ClaudeHaikuAgent(AnthropicAPIAgent):
+    """Claude Haiku agent."""
+
     model_name = "claude-3-haiku-20240307"

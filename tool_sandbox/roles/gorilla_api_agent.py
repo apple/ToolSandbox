@@ -37,7 +37,7 @@ from tool_sandbox.roles.base_role import BaseRole
 
 
 # From https://github.com/ShishirPatil/gorilla/blob/main/openfunctions/utils/python_parser.py
-def process_ast_node(node: Union[ast.Call, ast.Expr]) -> Union[str, Any]:
+def process_ast_node(node: Union[ast.Call, ast.Expr]) -> Union[str, Any]:  # noqa: ANN401
     """Parse AST node."""
     # Check if the node is a function call
     if isinstance(node, ast.Call):
@@ -56,11 +56,7 @@ def parse_python_function_call(call_str: str) -> dict[str, Any]:
     expr = tree.body[0]
 
     call_node = expr.value  # type: ignore
-    function_name = (
-        call_node.func.id
-        if isinstance(call_node.func, ast.Name)
-        else str(call_node.func)
-    )
+    function_name = call_node.func.id if isinstance(call_node.func, ast.Name) else str(call_node.func)
 
     parameters = {}
     nonameparam = []
@@ -100,11 +96,7 @@ FN_CALL_DELIMITER = "<<function>>"
 def _strip_function_calls(content: str) -> list[str]:
     """Split the content by the function call delimiter and remove empty strings."""
     # Fix: Removed [:2]
-    return [
-        element.strip()
-        for element in content.split(FN_CALL_DELIMITER)
-        if element.strip()
-    ]
+    return [element.strip() for element in content.split(FN_CALL_DELIMITER) if element.strip()]
 
 
 # Adapted from https://huggingface.co/gorilla-llm/gorilla-openfunctions-v2#running-openfunctions-locally
@@ -159,13 +151,10 @@ def to_chat_completion_message(choice: CompletionChoice) -> ChatCompletionMessag
 
 def completion_to_chat_completion(response: Completion) -> ChatCompletion:
     """Convert the `Completion` to a `ChatCompletion` object with tool calls."""
+    assert len(response.choices) > 0, f"The `choices` list of the response must not be empty:\n{response}"
     assert (
-        len(response.choices) > 0
-    ), f"The `choices` list of the response must not be empty:\n{response}"
-    assert len(response.choices) == 1, (
-        f"Only a single choice is currently supported but got {len(response.choices)}:"
-        f"\n{response}"
-    )
+        len(response.choices) == 1
+    ), f"Only a single choice is currently supported but got {len(response.choices)}:\n{response}"
     choices = [
         Choice(
             finish_reason=response.choices[0].finish_reason,
@@ -204,10 +193,7 @@ def get_prompt(user_query: str, functions: list[ChatCompletionToolParam]) -> str
     if len(functions) == 0:
         return f"{system}\n### Instruction: <<question>> {user_query}\n### Response: "
     functions_string = json.dumps(functions)
-    return (
-        f"{system}\n### Instruction: <<function>>{functions_string}\n"
-        f"<<question>>{user_query}\n### Response: "
-    )
+    return f"{system}\n### Instruction: <<function>>{functions_string}\n<<question>>{user_query}\n### Response: "
 
 
 def _sanitize_messages(
@@ -231,16 +217,14 @@ def _sanitize_messages(
 
     Args:
         openai_messages: Messages in the OpenAI format.
+
     Returns:
         Sanitized messages.
     """
 
     def _sanitize_tool_call(tool_call: dict[str, Any]) -> dict[str, Any]:
         arguments = json.loads(tool_call["function"]["arguments"])
-        new_arguments = {
-            sanitize_python_name(argname): argdesc
-            for argname, argdesc in arguments.items()
-        }
+        new_arguments = {sanitize_python_name(argname): argdesc for argname, argdesc in arguments.items()}
         tool_call["function"]["arguments"] = json.dumps(new_arguments)
         return tool_call
 
@@ -254,9 +238,7 @@ def _sanitize_messages(
         Any,
     ]:
         if "tool_calls" in message:
-            new_tool_calls = [
-                _sanitize_tool_call(tool_call=tc) for tc in message["tool_calls"]
-            ]
+            new_tool_calls = [_sanitize_tool_call(tool_call=tc) for tc in message["tool_calls"]]
             message["tool_calls"] = new_tool_calls
         return message
 
@@ -301,6 +283,7 @@ def _sanitize_tools(
 
     Args:
         openai_tools: Tools in the OpenAI format.
+
     Returns:
         The sanitized tool definitions.
     """
@@ -309,16 +292,11 @@ def _sanitize_tools(
         tool_defn: ChatCompletionToolParam,
     ) -> ChatCompletionToolParam:
         # OpenAI's type hint for `parameters` is `Dict[str, object]`.
-        properties = cast(
-            dict[str, Any], tool_defn["function"]["parameters"]["properties"]
-        )
-        new_properties = {
-            sanitize_python_name(propname): propdesc
-            for propname, propdesc in properties.items()
-        }
+        properties = cast("dict[str, Any]", tool_defn["function"]["parameters"]["properties"])
+        new_properties = {sanitize_python_name(propname): propdesc for propname, propdesc in properties.items()}
         tool_defn["function"]["parameters"]["properties"] = new_properties
 
-        required = cast(list[str], tool_defn["function"]["parameters"]["required"])
+        required = cast("list[str]", tool_defn["function"]["parameters"]["required"])
         new_required = [sanitize_python_name(r) for r in required]
         tool_defn["function"]["parameters"]["required"] = new_required
 
@@ -334,16 +312,15 @@ class GorillaAPIAgent(BaseRole):
     model_name: str
 
     def __init__(self, model_name: str) -> None:
+        """Initialize the Gorilla API agent."""
         super().__init__()
 
         self.model_name = model_name
-        assert (
-            "OPENAI_BASE_URL" in os.environ
-        ), "The `OPENAI_BASE_URL` environment variable must be set."
+        assert "OPENAI_BASE_URL" in os.environ, "The `OPENAI_BASE_URL` environment variable must be set."
         self.client = OpenAI(api_key="EMPTY")
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
 
         Specifically, interprets system, user, execution environment messages and sends out NL response to user, or
         code snippet to execution environment.
@@ -374,22 +351,22 @@ class GorillaAPIAgent(BaseRole):
         available_tool_names = set(available_tools.keys())
         openai_tools = (
             convert_to_openai_tools(available_tools)
-            if messages[-1].sender == RoleType.USER
-            or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
+            if messages[-1].sender == RoleType.USER or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
             else NOT_GIVEN
         )
         # We need a cast here since `convert_to_openai_tool` returns a plain dict, but
         # `ChatCompletionToolParam` is a `TypedDict`.
         openai_tools = cast(
-            Union[Iterable[ChatCompletionToolParam], NotGiven],
+            "Union[Iterable[ChatCompletionToolParam], NotGiven]",
             openai_tools,
-        )
+        )  # type: ignore
         # Convert to OpenAI messages.
         current_context = get_current_context()
         openai_messages, _ = to_openai_messages(messages)
         # Call model
         gorilla_response = self.model_inference(
-            openai_messages=openai_messages, openai_tools=openai_tools
+            openai_messages=openai_messages,
+            openai_tools=openai_tools,  # type: ignore
         )
 
         # Parse response
@@ -411,11 +388,7 @@ class GorillaAPIAgent(BaseRole):
             for tool_call in openai_response_message.tool_calls:
                 # The response contains the agent facing tool name so we need to get
                 # the execution facing tool name when creating the Python code.
-                execution_facing_tool_name = (
-                    current_context.get_execution_facing_tool_name(
-                        tool_call.function.name
-                    )
-                )
+                execution_facing_tool_name = current_context.get_execution_facing_tool_name(tool_call.function.name)
                 response_messages.append(
                     Message(
                         sender=self.role_type,
@@ -446,7 +419,7 @@ class GorillaAPIAgent(BaseRole):
         ],
         openai_tools: Union[Iterable[ChatCompletionToolParam], NotGiven],
     ) -> Completion:
-        """Run Gorilla model inference
+        """Run Gorilla model inference.
 
         Args:
             openai_messages:    List of OpenAI API format messages

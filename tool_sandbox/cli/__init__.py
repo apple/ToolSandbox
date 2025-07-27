@@ -8,10 +8,9 @@ import json
 import multiprocessing
 import random
 import subprocess
-from collections import Counter
 from functools import partial
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import polars as pl
 from tqdm import tqdm
@@ -27,9 +26,13 @@ from tool_sandbox.cli.utils import (
     resolve_scenarios,
     run_scenario,
 )
-from tool_sandbox.common.execution_context import ScenarioCategories
 from tool_sandbox.common.scenario import Scenario
 from tool_sandbox.common.tool_discovery import ToolBackend
+
+if TYPE_CHECKING:
+    from collections import Counter
+
+    from tool_sandbox.common.execution_context import ScenarioCategories
 
 DEFAULT_USER_TYPE = RoleImplType.GPT_4_o_2024_05_13
 
@@ -41,11 +44,7 @@ def get_git_sha() -> Optional[str]:
     # tried `pygit2` and `GitPython`, but both failed to get the commit associated with
     # `HEAD` for me.
     try:
-        return (
-            subprocess.check_output(["git", "rev-parse", "HEAD"])
-            .decode("ascii")
-            .strip()
-        )
+        return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
     except subprocess.CalledProcessError:
         # The tool sandbox script was not executed from within the git repository so we
         # cannot figure out the git SHA.
@@ -53,6 +52,7 @@ def get_git_sha() -> Optional[str]:
 
 
 def has_local_changes() -> bool:
+    """Check if there are local changes."""
     # From https://stackoverflow.com/a/3878934 . `git diff --exit-code` will return 0 if
     # there are no local changes. The `--quiet` suppresses printing to stdout. Note that
     # this approach does not detect untracked files, but this should be fine for our
@@ -66,6 +66,7 @@ def write_result_summary(
     category_summary: dict[str, dict[str, list[float]]],
     output_directory: Path,
 ) -> None:
+    """Write results summary to a JSON file."""
     # Try to get the current git SHA so that there is some provenance on with which
     # version of the code results have been generated with.
     git_sha = get_git_sha()
@@ -96,7 +97,7 @@ def run_sandbox(
     processes: int,
     output_base_dir: Path,
 ) -> None:
-    """Entry point for Tool Sandbox
+    """Entry point for Tool Sandbox.
 
     Args:
         agent_type:       The agent type to use.
@@ -104,7 +105,6 @@ def run_sandbox(
         name_to_scenario: Dictionary from scenario name to scenario definition.
         processes:        Number of processes to run in parallel.
         output_base_dir:  Base directory for model outputs.
-
     """
     # Show all rows and all columns when converting polars dataframes to strings.
     # Sadly, there is no way to specify an unlimited format length for strings. Note
@@ -123,9 +123,7 @@ def run_sandbox(
     print(f"Storing outputs to '{output_directory}'.")
 
     # Print a category-wise count before playing scenarios
-    category_counter: Counter[Union[ScenarioCategories, str]] = (
-        get_category_to_scenario_count(name_to_scenario)
-    )
+    category_counter: Counter[Union[ScenarioCategories, str]] = get_category_to_scenario_count(name_to_scenario)
     print(
         "Number of test cases per category:",
         json.dumps(
@@ -135,18 +133,11 @@ def run_sandbox(
         ),
     )
     # Print a necessary tool-wise count before playing scenarios
-    necessary_tool_counter: Counter[str] = get_necessary_tool_name_to_scenario_count(
-        name_to_scenario
-    )
+    necessary_tool_counter: Counter[str] = get_necessary_tool_name_to_scenario_count(name_to_scenario)
     print(
         "Number of test cases per necessary tool name:",
         json.dumps(
-            {
-                str(k): v
-                for k, v in necessary_tool_counter.most_common(
-                    len(necessary_tool_counter)
-                )
-            },
+            {str(k): v for k, v in necessary_tool_counter.most_common(len(necessary_tool_counter))},
             indent=4,
             ensure_ascii=False,
         ),
@@ -195,19 +186,21 @@ def run_sandbox(
 
 
 def main() -> None:
+    """Main entry point for Tool Sandbox."""
     random.seed(42)
+    # ! replace key in dict.keys with key in dict
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--agent",
         help="Agent type.",
         default="GPT_4_o_2024_05_13",
-        choices=[str(t) for t in AGENT_TYPE_TO_FACTORY.keys()],
+        choices=[str(t) for t in AGENT_TYPE_TO_FACTORY],
     )
     parser.add_argument(
         "--user",
         help="User type.",
         default=str(DEFAULT_USER_TYPE),
-        choices=[str(t) for t in USER_TYPE_TO_FACTORY.keys()],
+        choices=[str(t) for t in USER_TYPE_TO_FACTORY],
     )
     parser.add_argument(
         "--preferred_tool_backend",

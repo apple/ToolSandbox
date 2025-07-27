@@ -41,17 +41,14 @@ def _get_cohere_tokenizer_name(model_name: str) -> str:
     if model_name == "c4ai-command-r-v01":
         return "CohereForAI/c4ai-command-r-v01"
 
-    raise RuntimeError(
-        f"Update the code to select a tokenizer for model '{model_name}'."
-    )
+    raise RuntimeError(f"Update the code to select a tokenizer for model '{model_name}'.")
 
 
 def to_cohere_tool(openai_tool: ChatCompletionToolParam) -> dict[str, Any]:
     """Convert OpenAI to Cohere tool format."""
-    assert openai_tool["type"] == "function", (
-        "Object to convert to Cohere tool format is not a valid OpenAI tool:"
-        f"\n{openai_tool}"
-    )
+    assert (
+        openai_tool["type"] == "function"
+    ), f"Object to convert to Cohere tool format is not a valid OpenAI tool:\n{openai_tool}"
 
     # Cohere uses its own tool format, see https://docs.cohere.com/docs/tool-use#step-1
     # The main differences compared to the OpenAI format are:
@@ -66,19 +63,13 @@ def to_cohere_tool(openai_tool: ChatCompletionToolParam) -> dict[str, Any]:
         "description": openai_function.get("description", "No description available."),
         "parameter_definitions": {},
     }
-    openai_properties = cast(
-        dict[str, Any], openai_function["parameters"]["properties"]
-    )
+    openai_properties = cast("dict[str, Any]", openai_function["parameters"]["properties"])
     for arg_name, arg_properties in openai_properties.items():
         # There are tool augmentations where the argument type and/or description
         # information is being removed.
-        is_required = arg_name in cast(
-            list[str], openai_function["parameters"]["required"]
-        )
+        is_required = arg_name in cast("list[str]", openai_function["parameters"]["required"])
         cohere_tool["parameter_definitions"][arg_name] = {
-            "description": arg_properties.get(
-                "description", "No description available."
-            ),
+            "description": arg_properties.get("description", "No description available."),
             "type": arg_properties.get("type", "object"),
             "required": is_required,
         }
@@ -98,11 +89,14 @@ def create_prompt(
     """Process request and fill the prompt for Cohere.
 
     Args:
-        request: A OpenAI style request.
+        tokenizer: A tokenizer for the model.
+        openai_messages: A list of OpenAI style messages.
+        openai_tools: A list of OpenAI style tools.
+
+    Returns:
+        A string prompt for the model.
     """
-    cohere_tools = (
-        [to_cohere_tool(tool) for tool in openai_tools] if openai_tools else []
-    )
+    cohere_tools = [to_cohere_tool(tool) for tool in openai_tools] if openai_tools else []
 
     prompt = tokenizer.apply_tool_use_template(
         conversation=openai_messages,
@@ -119,6 +113,15 @@ def create_prompt(
 
 
 def to_chat_completion_message(choice: CompletionChoice) -> ChatCompletionMessage:
+    """Convert a CompletionChoice to a ChatCompletionMessage.
+
+    Args:
+        choice: A CompletionChoice object.
+
+    Returns:
+        A ChatCompletionMessage object.
+    """
+
     def _parse_tools(text: str) -> list[dict[str, Any]]:
         prefix = "Action: ```json"
         suffix = "```"
@@ -129,39 +132,28 @@ def to_chat_completion_message(choice: CompletionChoice) -> ChatCompletionMessag
         tool_call_str = text[len(prefix) : len(text) - len(suffix)]
         try:
             return cast(
-                list[dict[str, Any]],
+                "list[dict[str, Any]]",
                 json.loads(tool_call_str),
             )
         except Exception as e:
-            raise RuntimeError(
-                f"Error parsing tool call string '{tool_call_str}'."
-            ) from e
+            raise RuntimeError(f"Error parsing tool call string '{tool_call_str}'.") from e
 
     def _convert_tool(tool: dict[str, Any], idx: int) -> ChatCompletionMessageToolCall:
-        function = Function(
-            name=tool["tool_name"], arguments=json.dumps(tool["parameters"])
-        )
-        return ChatCompletionMessageToolCall(
-            id=f"call_{idx}", function=function, type="function"
-        )
+        function = Function(name=tool["tool_name"], arguments=json.dumps(tool["parameters"]))
+        return ChatCompletionMessageToolCall(id=f"call_{idx}", function=function, type="function")
 
     tool_call_dicts = _parse_tools(choice.text)
     tool_calls = [_convert_tool(t, idx) for idx, t in enumerate(tool_call_dicts)]
     content = choice.text if len(tool_calls) == 0 else ""
-    return ChatCompletionMessage(
-        role="assistant", content=content, tool_calls=tool_calls
-    )
+    return ChatCompletionMessage(role="assistant", content=content, tool_calls=tool_calls)
 
 
 def completion_to_chat_completion(response: Completion) -> ChatCompletion:
     """Convert the `Completion` to a `ChatCompletion` object with tool calls."""
+    assert len(response.choices) > 0, f"The `choices` list of the response must not be empty:\n{response}"
     assert (
-        len(response.choices) > 0
-    ), f"The `choices` list of the response must not be empty:\n{response}"
-    assert len(response.choices) == 1, (
-        f"Only a single choice is currently supported but got {len(response.choices)}:"
-        f"\n{response}"
-    )
+        len(response.choices) == 1
+    ), f"Only a single choice is currently supported but got {len(response.choices)}:\n{response}"
     choices = [
         Choice(
             finish_reason=response.choices[0].finish_reason,
@@ -187,19 +179,19 @@ class CohereAgent(BaseRole):
     model_name: str
 
     def __init__(self, model_name: str) -> None:
+        """Initialize the Cohere agent."""
         super().__init__()
 
         self.model_name = model_name
-        assert (
-            "OPENAI_BASE_URL" in os.environ
-        ), "The `OPENAI_BASE_URL` environment variable must be set."
+        assert "OPENAI_BASE_URL" in os.environ, "The `OPENAI_BASE_URL` environment variable must be set."
         self.client = OpenAI(api_key="EMPTY")
 
         model_id = _get_cohere_tokenizer_name(self.model_name)
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
+
         Specifically, interprets system, user, execution environment messages and sends out NL response to user, or
         code snippet to execution environment.
         Message comes from current context, the last k messages should be directed to this role type
@@ -226,23 +218,21 @@ class CohereAgent(BaseRole):
         available_tool_names = set(available_tools.keys())
         openai_tools = (
             convert_to_openai_tools(available_tools)
-            if messages[-1].sender == RoleType.USER
-            or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
+            if messages[-1].sender == RoleType.USER or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
             else NOT_GIVEN
         )
         # We need a cast here since `convert_to_openai_tool` returns a plain dict, but
         # `ChatCompletionToolParam` is a `TypedDict`.
+        # ? mypy complains that cast has incompatible types.
         openai_tools = cast(
-            Union[Iterable[ChatCompletionToolParam], NotGiven],
+            "Union[Iterable[ChatCompletionToolParam], NotGiven]",
             openai_tools,
-        )
+        )  # type: ignore
         # Convert to OpenAI messages.
         current_context = get_current_context()
         openai_messages, _ = to_openai_messages(messages)
         # Call model
-        cohere_response = self.model_inference(
-            openai_messages=openai_messages, openai_tools=openai_tools
-        )
+        cohere_response = self.model_inference(openai_messages=openai_messages, openai_tools=openai_tools)  # type: ignore
 
         # Parse response
         openai_response = completion_to_chat_completion(cohere_response)
@@ -263,11 +253,7 @@ class CohereAgent(BaseRole):
             for tool_call in openai_response_message.tool_calls:
                 # The response contains the agent facing tool name so we need to get
                 # the execution facing tool name when creating the Python code.
-                execution_facing_tool_name = (
-                    current_context.get_execution_facing_tool_name(
-                        tool_call.function.name
-                    )
-                )
+                execution_facing_tool_name = current_context.get_execution_facing_tool_name(tool_call.function.name)
                 response_messages.append(
                     Message(
                         sender=self.role_type,
@@ -299,6 +285,7 @@ class CohereAgent(BaseRole):
         openai_tools: Union[Iterable[ChatCompletionToolParam], NotGiven],
     ) -> Completion:
         """Run Cohere model inference.
+
         Args:
             openai_messages:    List of OpenAI API format messages
             openai_tools:       List of OpenAI API format tools definition

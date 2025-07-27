@@ -8,6 +8,10 @@ repos:
         args: [ '--unsafe' ] # checks syntax without loading yaml
       - id: check-added-large-files
         args: [ '--maxkb=1024' ]
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.8.1
+    hooks:
+      - id: nbstripout
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
     rev: v0.3.0

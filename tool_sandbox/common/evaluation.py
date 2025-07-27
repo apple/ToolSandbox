@@ -30,7 +30,7 @@ LOGGER = getLogger(__name__)
 
 
 class ColumnSimilarityMeasureType(Protocol):
-    """Callable type def for column similarity measure functions
+    """Callable type def for column similarity measure functions.
 
     Each similarity measure takes a dataframe, column to calculate similarity on and value,
     to return a Dataframe representing similarity between each row in the dataframe and the value
@@ -41,15 +41,27 @@ class ColumnSimilarityMeasureType(Protocol):
         self,
         dataframe: pl.DataFrame,
         column_name: str,
-        value: Any,
+        value: Any,  # noqa: ANN401
         atol_dict: Optional[dict[str, float]] = None,
-    ) -> pl.DataFrame: ...
+    ) -> pl.DataFrame:
+        """Call method for column similarity measure functions.
+
+        Args:
+            dataframe:      Dataframe to calculate similarity on
+            column_name:    Column name to compare
+            value:          Value the column should compare against
+            atol_dict:      Absolute tolerance for each argument
+
+        Returns:
+            A Dataframe containing similarity score. 0 for no match, 1 for match
+        """
+        ...
 
 
 def column_exact_match_similarity(
     dataframe: pl.DataFrame,
     column_name: str,
-    value: Any,
+    value: Any,  # noqa: ANN401
     atol_dict: Optional[dict[str, float]] = None,
 ) -> pl.DataFrame:
     """A 0/1 similarity based on exact match.
@@ -64,19 +76,15 @@ def column_exact_match_similarity(
         A Dataframe containing similarity score. 0 for no match, 1 for match
     """
     if value is not None:
-        return dataframe.select(
-            pl.col(column_name).eq(value).cast(pl.Float32).alias("similarity")
-        )
+        return dataframe.select(pl.col(column_name).eq(value).cast(pl.Float32).alias("similarity"))
     else:
-        return dataframe.select(
-            pl.col(column_name).is_null().cast(pl.Float32).alias("similarity")
-        )
+        return dataframe.select(pl.col(column_name).is_null().cast(pl.Float32).alias("similarity"))
 
 
 def column_close_similarity(
     dataframe: pl.DataFrame,
     column_name: str,
-    value: Any,
+    value: Any,  # noqa: ANN401
     atol_dict: Optional[dict[str, float]] = None,
 ) -> pl.DataFrame:
     """A 0/1 similarity based on how close values are.
@@ -92,10 +100,10 @@ def column_close_similarity(
     Returns:
         A Dataframe containing similarity score. 0 for no match, 1 for match
     """
-    assert isinstance(value, (int, float)) and atol_dict is not None
+    assert isinstance(value, (int, float)) and atol_dict is not None  # noqa: PT018
 
     def check_close(x: tuple[Optional[str]]) -> float:
-        """UDF checking if x [0] is close to value
+        """UDF checking if x [0] is close to value.
 
         Args:
             x:  single value tuple containing a tool trace
@@ -117,10 +125,10 @@ def column_close_similarity(
 def column_one_similarity(
     dataframe: pl.DataFrame,
     column_name: str,
-    value: Any,
+    value: Any,  # noqa: ANN401
     atol_dict: Optional[dict[str, float]] = None,
 ) -> pl.DataFrame:
-    """A similarity that always returns 1 as similarity score
+    """A similarity that always returns 1 as similarity score.
 
     Args:
         dataframe:      Dataframe to calculate similarity on
@@ -137,10 +145,10 @@ def column_one_similarity(
 def column_contains_similarity(
     dataframe: pl.DataFrame,
     column_name: str,
-    value: Any,
+    value: Any,  # noqa: ANN401
     atol_dict: Optional[dict[str, float]] = None,
 ) -> pl.DataFrame:
-    """A 0/1 similarity whether the value is contained in column value string
+    """A 0/1 similarity whether the value is contained in column value string.
 
     Args:
         dataframe:      Dataframe to calculate similarity on
@@ -151,18 +159,13 @@ def column_contains_similarity(
     Returns:
         A Dataframe containing similarity score. 0 if the column value do not contain target value, 1 if it does
     """
-    return dataframe.select(
-        pl.col(column_name)
-        .str.contains_any([value])
-        .cast(pl.Float32)
-        .alias("similarity")
-    )
+    return dataframe.select(pl.col(column_name).str.contains_any([value]).cast(pl.Float32).alias("similarity"))
 
 
 def column_tool_trace_exact_match_similarity(
     dataframe: pl.DataFrame,
     column_name: str,
-    value: Any,
+    value: Any,  # noqa: ANN401
     atol_dict: Optional[dict[str, float]] = None,
 ) -> pl.DataFrame:
     """A 0/1 similarity whether a tool trace matches a provided trace.
@@ -183,12 +186,10 @@ def column_tool_trace_exact_match_similarity(
     """
     trace: Union[dict[str, Any], list[dict[str, Any]]] = json.loads(value)
     # Normalize into a list of possible golden traces
-    golden_traces: list[dict[str, Any]] = (
-        [trace] if not isinstance(trace, Sequence) else list(trace)
-    )
+    golden_traces: list[dict[str, Any]] = [trace] if not isinstance(trace, Sequence) else list(trace)
 
     def match_trace(x: tuple[Optional[str]]) -> float:
-        """UDF calculating trace matching score
+        """UDF calculating trace matching score.
 
         Args:
             x:  single value tuple containing a tool trace
@@ -206,9 +207,7 @@ def column_tool_trace_exact_match_similarity(
                     is_close(
                         tool_trace["arguments"].get(argument_name, NOT_GIVEN),
                         golden_trace["arguments"][argument_name],
-                        atol=atol_dict.get(argument_name, None)
-                        if atol_dict is not None
-                        else None,
+                        atol=atol_dict.get(argument_name, None) if atol_dict is not None else None,
                     )
                     for argument_name in golden_trace["arguments"]
                 ):
@@ -225,10 +224,10 @@ def column_tool_trace_exact_match_similarity(
 def column_rouge_l_similarity(
     dataframe: pl.DataFrame,
     column_name: str,
-    value: Any,
+    value: Any,  # noqa: ANN401
     atol_dict: Optional[dict[str, float]] = None,
 ) -> pl.DataFrame:
-    """Similarity defined by ROUGE score. Only applicable for string values
+    """Similarity defined by ROUGE score. Only applicable for string values.
 
     Args:
         dataframe:      Dataframe to calculate similarity on
@@ -243,7 +242,7 @@ def column_rouge_l_similarity(
         scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
 
         def rouge_l_score(x: tuple[str]) -> float:
-            """UDF calculating rouge L
+            """UDF calculating rouge L.
 
             Args:
                 x:  single value tuple containing the column in question
@@ -251,9 +250,7 @@ def column_rouge_l_similarity(
             Returns:
                 float rouge L f score
             """
-            return cast(
-                float, scorer.score(target=value, prediction=x[0])["rougeL"].fmeasure
-            )
+            return cast("float", scorer.score(target=value, prediction=x[0])["rougeL"].fmeasure)
 
         return (
             dataframe.select(pl.col(column_name))
@@ -263,7 +260,7 @@ def column_rouge_l_similarity(
 
 
 class SnapshotSimilarityMeasureType(Protocol):
-    """Callable type def for snapshot similarity measure functions
+    """Callable type def for snapshot similarity measure functions.
 
     Each similarity measure takes a snapshot, target dataframe, column similarities and reference snapshot
     to return a float representing similarity between snapshot and other specified constraints
@@ -277,7 +274,20 @@ class SnapshotSimilarityMeasureType(Protocol):
         column_similarities: Optional[Dict[str, ColumnSimilarityMeasureType]] = None,
         reference_snapshot: Optional[pl.DataFrame] = None,
         **kwargs: Union[str, ToolTraceExtractorType],
-    ) -> float: ...
+    ) -> float:
+        """Call method for snapshot similarity measure functions.
+
+        Args:
+            snapshot:                   The dataframe snapshot to calculate similarity for
+            target_dataframe:           The dataframe to calculate similarity with
+            column_similarities:        A dictionary of column name to column-wise similarity measure
+            reference_snapshot:         Not utilized by this similarity
+            kwargs:                     Additional arguments to the similarity measure function
+
+        Returns:
+            A [0, 1] similarity score between snapshot and target_dataframe
+        """
+        ...
 
 
 def snapshot_similarity(
@@ -301,15 +311,16 @@ def snapshot_similarity(
         target_dataframe:           The dataframe to calculate similarity with
         column_similarities:        A dictionary of column name to column-wise similarity measure
         reference_snapshot:         Not utilized by this similarity
+        kwargs:                     Additional arguments to the similarity measure function
 
     Returns:
         A [0, 1] similarity score between target_dataframe and snapshot
     """
-    assert target_dataframe is not None and column_similarities is not None
+    assert target_dataframe is not None and column_similarities is not None  # noqa: PT018
     # Check for row number and columns
-    if snapshot.select(pl.len())["len"][0] != target_dataframe.select(pl.len())["len"][
-        0
-    ] or set(target_dataframe.columns) - set(snapshot.columns):
+    if snapshot.select(pl.len())["len"][0] != target_dataframe.select(pl.len())["len"][0] or set(
+        target_dataframe.columns
+    ) - set(snapshot.columns):
         return 0.0
     # Create N * N cost matrix (- log similarity). This ensures when assignment cost is minimized
     # through hungarian algorithm, row-wise geo metric mean of similarity is maximized
@@ -328,9 +339,7 @@ def snapshot_similarity(
             how="horizontal",
         )
         cost_matrix.append(
-            column_cost_df.select(
-                pl.mean_horizontal(*column_cost_df.columns).alias("mean")
-            )["mean"].to_numpy()
+            column_cost_df.select(pl.mean_horizontal(*column_cost_df.columns).alias("mean"))["mean"].to_numpy()
         )
     numpy_cost_matrix = np.stack(cost_matrix, axis=0)
     try:
@@ -340,7 +349,7 @@ def snapshot_similarity(
         # cost matrix is infeasible (always results in inf). Return 0
         return 0
     # Calculate similarity
-    return cast(float, np.exp(-numpy_cost_matrix[row_ind, col_ind].mean()).tolist())
+    return cast("float", np.exp(-numpy_cost_matrix[row_ind, col_ind].mean()).tolist())
 
 
 def addition_similarity(
@@ -350,8 +359,7 @@ def addition_similarity(
     reference_snapshot: Optional[pl.DataFrame] = None,
     **kwargs: Union[str, ToolTraceExtractorType],
 ) -> float:
-    """Measures the similarity between each database snapshot and a target_dataframe, if the snapshot is supposed to
-    be derived from adding target_dataframe onto reference_snapshot
+    """Measures the similarity between each database snapshot and a target_dataframe, if the snapshot is supposed to be derived from adding target_dataframe onto reference_snapshot.
 
         1. If snapshot does not fully contain reference_snapshot, similarity is always 0
         2. If it does, the anti join of the two is compared against target_dataframe using snapshot_similarity
@@ -362,27 +370,20 @@ def addition_similarity(
         column_similarities:        A dictionary of column name to column-wise similarity measure
         reference_snapshot:         When similarity is 1,
                                     snapshot should be the result of adding target_dataframe into reference_snapshot
+        kwargs:                     Additional arguments to the similarity measure function
 
     Returns:
         A [0, 1] similarity score between target_dataframe and snapshot
     """
-    assert (
-        target_dataframe is not None
-        and column_similarities is not None
-        and reference_snapshot is not None
-    )
+    assert target_dataframe is not None and column_similarities is not None and reference_snapshot is not None  # noqa: PT018
     # Drop sandbox_message_index
     # Fill null with zero to prevent join failure
     snapshot = snapshot.drop("sandbox_message_index").fill_null(strategy="zero")
-    reference_snapshot = reference_snapshot.drop("sandbox_message_index").fill_null(
-        strategy="zero"
-    )
+    reference_snapshot = reference_snapshot.drop("sandbox_message_index").fill_null(strategy="zero")
     target_dataframe = target_dataframe.fill_null(strategy="zero")
     if (
         reference_snapshot.select(pl.len())["len"][0]
-        != snapshot.join(reference_snapshot, on=snapshot.columns, how="inner").select(
-            pl.len()
-        )["len"][0]
+        != snapshot.join(reference_snapshot, on=snapshot.columns, how="inner").select(pl.len())["len"][0]
     ):
         return 0
     return snapshot_similarity(
@@ -400,8 +401,7 @@ def removal_similarity(
     reference_snapshot: Optional[pl.DataFrame] = None,
     **kwargs: Union[str, ToolTraceExtractorType],
 ) -> float:
-    """Measures the similarity between each database snapshot and a target_dataframe, if the snapshot is supposed to
-    be derived from removing target_dataframe from reference_snapshot
+    """Measures the similarity between each database snapshot and a target_dataframe, if the snapshot is supposed to be derived from removing target_dataframe from reference_snapshot.
 
         This can be implemented by swapping snapshot, reference_snapshot and calling addition_similarity
 
@@ -411,15 +411,12 @@ def removal_similarity(
         column_similarities:        A dictionary of column name to column-wise similarity measure
         reference_snapshot:         When similarity is 1,
                                     snapshot should be the result of removing target_dataframe from reference_snapshot
+        kwargs:                     Additional arguments to the similarity measure function
 
     Returns:
         A [0, 1] similarity score between target_dataframe and snapshot
     """
-    assert (
-        target_dataframe is not None
-        and column_similarities is not None
-        and reference_snapshot is not None
-    )
+    assert target_dataframe is not None and column_similarities is not None and reference_snapshot is not None  # noqa: PT018
     return addition_similarity(
         snapshot=reference_snapshot,
         target_dataframe=target_dataframe,
@@ -435,8 +432,7 @@ def update_similarity(
     reference_snapshot: Optional[pl.DataFrame] = None,
     **kwargs: Union[str, ToolTraceExtractorType],
 ) -> float:
-    """Measures the similarity between each database snapshot and a target_dataframe, if the snapshot is supposed to
-    be derived from updating the same of number entries from reference_snapshot into target_dataframe
+    """Measures the similarity between each database snapshot and a target_dataframe, if the snapshot is supposed to be derived from updating the same of number entries from reference_snapshot into target_dataframe.
 
         1. If snapshot and reference_snapshot doesn't match in row count, similarity is always 0
         2. If the number of different rows between snapshot and reference_snapshot doesn't match target_dataframe
@@ -449,26 +445,18 @@ def update_similarity(
         column_similarities:        A dictionary of column name to column-wise similarity measure
         reference_snapshot:         When similarity is 1,
                                     snapshot should be the result of adding target_dataframe into reference_snapshot
+        kwargs:                     Additional arguments to the similarity measure function
 
     Returns:
         A [0, 1] similarity score between target_dataframe and snapshot
     """
-    assert (
-        target_dataframe is not None
-        and column_similarities is not None
-        and reference_snapshot is not None
-    )
+    assert target_dataframe is not None and column_similarities is not None and reference_snapshot is not None  # noqa: PT018
     # Drop sandbox_message_index
     # Fill null with zero to prevent join failure
     snapshot = snapshot.drop("sandbox_message_index").fill_null(strategy="zero")
-    reference_snapshot = reference_snapshot.drop("sandbox_message_index").fill_null(
-        strategy="zero"
-    )
+    reference_snapshot = reference_snapshot.drop("sandbox_message_index").fill_null(strategy="zero")
     target_dataframe = target_dataframe.fill_null(strategy="zero")
-    if (
-        reference_snapshot.select(pl.len())["len"][0]
-        != snapshot.select(pl.len())["len"][0]
-    ):
+    if reference_snapshot.select(pl.len())["len"][0] != snapshot.select(pl.len())["len"][0]:
         return 0
     return snapshot_similarity(
         snapshot.join(reference_snapshot, on=snapshot.columns, how="anti"),
@@ -478,16 +466,14 @@ def update_similarity(
     )
 
 
-def tool_trace_dependant_similarity(
+def tool_trace_dependant_similarity(  # noqa: C901
     snapshot: pl.DataFrame,
     target_dataframe: Optional[pl.DataFrame] = None,
     column_similarities: Optional[Dict[str, ColumnSimilarityMeasureType]] = None,
     reference_snapshot: Optional[pl.DataFrame] = None,
     **kwargs: Union[str, ToolTraceExtractorType],
 ) -> float:
-    """A special similarity only intended to be used for SANDBOX database. Allows one to extract values
-    from the tool_trace in reference_snapshot, and fill into target_dataframe. Extractors are allowed to return
-    multiple "normalized" version of extracted value, a similarity will be calculated for each, and return the max.
+    """A special similarity only intended to be used for SANDBOX database. Allows one to extract values from the tool_trace in reference_snapshot, and fill into target_dataframe. Extractors are allowed to return multiple "normalized" version of extracted value, a similarity will be calculated for each, and return the max.
 
     Args:
         snapshot:               The dataframe snapshot to calculate similarity for
@@ -507,57 +493,47 @@ def tool_trace_dependant_similarity(
                                 calculate similarity, and the max of all normalized forms is taken as final similarity.
 
     Returns:
+        A [0, 1] similarity score between target_dataframe and snapshot
 
     """
-    assert (
-        target_dataframe is not None
-        and column_similarities is not None
-        and reference_snapshot is not None
-    )
+    assert target_dataframe is not None and column_similarities is not None and reference_snapshot is not None  # noqa: PT018
     # Check schema to make sure we are working with SANDBOX database. Allows sandbox_message_index to be dropped
     for current_snapshot in (snapshot, reference_snapshot):
         schema = {**current_snapshot.schema}
         # Add sandbox_message_index if dropped
         schema.update(
-            {
-                "sandbox_message_index": ExecutionContext.dbs_schemas[
-                    DatabaseNamespace.SANDBOX
-                ]["sandbox_message_index"]
-            }
+            {"sandbox_message_index": ExecutionContext.dbs_schemas[DatabaseNamespace.SANDBOX]["sandbox_message_index"]}
         )
         if (
             schema != ExecutionContext.dbs_schemas[DatabaseNamespace.SANDBOX]
             or current_snapshot.select(pl.len())["len"][0] != 1
         ):
-            raise SchemaError(
-                "tool_trace_dependant_similarity can only be used with SANDBOX database with only 1 row"
-            )
+            raise SchemaError("tool_trace_dependant_similarity can only be used with SANDBOX database with only 1 row")
     # Check kwargs
     if "fill_to" not in kwargs:
         raise KeyError(
             "fill_to kwarg of type Literal['tool_trace', 'content'] "
             "must be provided to tool_trace_dependant_similarity. "
         )
-    fill_to = cast(Literal["tool_trace", "content"], kwargs["fill_to"])
+    fill_to = cast("Literal['tool_trace', 'content']", kwargs["fill_to"])
     if fill_to not in ("tool_trace", "content"):
         raise ValueError("fill_to must be of type Literal['tool_trace', 'content']")
     if "extractor" not in kwargs:
         raise KeyError(
-            "extractor kwarg of type ToolTraceExtractorType "
-            "must be provided to tool_trace_dependant_similarity. "
+            "extractor kwarg of type ToolTraceExtractorType must be provided to tool_trace_dependant_similarity. "
         )
-    extractor = cast(ToolTraceExtractorType, kwargs["extractor"])
+    extractor = cast("ToolTraceExtractorType", kwargs["extractor"])
     # Start extraction
     if reference_snapshot["tool_trace"][0] is None:
         return 0
     tool_traces = cast(
-        List[Dict[Literal["tool_name", "arguments", "result"], Any]],
+        "List[Dict[Literal['tool_name', 'arguments', 'result'], Any]]",
         [json.loads(x) for x in reference_snapshot["tool_trace"][0]],
     )
     # Extract values from all tool traces in snapshot
     extracted_values: List[Dict[str, Any]] = []
     for tool_trace in tool_traces:
-        try:
+        try:  # noqa: SIM105
             extracted_values.extend(extractor(tool_trace))
         except (KeyError, IndexError, TypeError, ValueError):
             pass
@@ -570,13 +546,9 @@ def tool_trace_dependant_similarity(
             #   2. If an extracted_value overrides an existing kwarg in the trace,
             #       consider the existing kwarg as well.
             if fill_to == "tool_trace":
-                trace: Union[dict[str, Any], list[dict[str, Any]]] = json.loads(
-                    target_dataframe["tool_trace"][0]
-                )
+                trace: Union[dict[str, Any], list[dict[str, Any]]] = json.loads(target_dataframe["tool_trace"][0])
                 # Normalize into a list of possible candidate traces
-                candidate_traces: list[dict[str, Any]] = (
-                    [trace] if not isinstance(trace, Sequence) else list(trace)
-                )
+                candidate_traces: list[dict[str, Any]] = [trace] if not isinstance(trace, Sequence) else list(trace)
                 filled_traces: list[dict[str, Any]] = []
                 # Filling extracted value to all candidate traces
                 for candidate_trace in candidate_traces:
@@ -595,24 +567,20 @@ def tool_trace_dependant_similarity(
                     snapshot_similarity(
                         snapshot=snapshot,
                         target_dataframe=target_dataframe.with_columns(
-                            pl.lit(json.dumps(filled_traces, ensure_ascii=False)).alias(
-                                "tool_trace"
-                            )
+                            pl.lit(json.dumps(filled_traces, ensure_ascii=False)).alias("tool_trace")
                         ),
                         column_similarities=column_similarities,
                         reference_snapshot=reference_snapshot,
                     ),
                 )
             elif fill_to == "content":
-                candidate_content = cast(str, target_dataframe["content"][0])
+                candidate_content = cast("str", target_dataframe["content"][0])
                 candidate_content = candidate_content.format(**extracted_value)
                 similarity = max(
                     similarity,
                     snapshot_similarity(
                         snapshot=snapshot,
-                        target_dataframe=target_dataframe.with_columns(
-                            pl.lit(candidate_content).alias("content")
-                        ),
+                        target_dataframe=target_dataframe.with_columns(pl.lit(candidate_content).alias("content")),
                         column_similarities=column_similarities,
                         reference_snapshot=reference_snapshot,
                     ),
@@ -629,7 +597,7 @@ def guardrail_similarity(
     reference_snapshot: Optional[pl.DataFrame] = None,
     **kwargs: Union[str, ToolTraceExtractorType],
 ) -> float:
-    """Similarity which ensures snapshot is identical to reference. Returns 0 otherwise
+    """Similarity which ensures snapshot is identical to reference. Returns 0 otherwise.
 
     Args:
         snapshot:                   The dataframe snapshot to calculate similarity for
@@ -637,6 +605,7 @@ def guardrail_similarity(
         column_similarities:        Not utilized by this similarity
         reference_snapshot:         When similarity is 1,
                                     snapshot identical to reference_snapshot
+        kwargs:                     Additional arguments to the similarity measure function
 
     Returns:
         A [0, 1] similarity score between target_dataframe and snapshot
@@ -701,11 +670,7 @@ _default_dbs_column_similarities: dict[str, dict[str, ColumnSimilarityMeasureTyp
 
 @define
 class SnapshotConstraint:
-    """Constraints between 2 snapshots. These are (optionally) pairwise similarity constraints that are
-    applied between 2 milestones and their corresponding snapshots. This constraint should provide a [0, 1]
-    constraint score.
-
-    """
+    """Constraints between 2 snapshots. These are (optionally) pairwise similarity constraints that are applied between 2 milestones and their corresponding snapshots. This constraint should provide a [0, 1] constraint score."""
 
     # Which database should this constraint be applied to
     database_namespace: DatabaseNamespace
@@ -720,11 +685,7 @@ class SnapshotConstraint:
     column_similarity_measure: Optional[Dict[str, ColumnSimilarityMeasureType]] = None
 
     def __attrs_post_init__(self) -> None:
-        """Fill in default values for column_similarity_measure
-
-        Returns:
-
-        """
+        """Fill in default values for column_similarity_measure."""
         column_similarity_measure: Dict[str, ColumnSimilarityMeasureType] = deepcopy(
             _default_dbs_column_similarities[self.database_namespace]
         )
@@ -736,7 +697,7 @@ class SnapshotConstraint:
 
 @define
 class Milestone:
-    """Constraints defining a milestone"""
+    """Constraints defining a milestone."""
 
     # A List of similarity constraints. All these constraints are applied to databases of the same sandbox_message_index
     snapshot_constraints: List[SnapshotConstraint]
@@ -750,27 +711,14 @@ class Milestone:
     guardrail_database_exclusion_list: Optional[List[DatabaseNamespace]] = None
 
     def __attrs_post_init__(self) -> None:
-        """Set default guardrail_database_list
-
-        Returns:
-
-        """
-        if (
-            self.guardrail_database_list is not None
-            and self.guardrail_database_exclusion_list is not None
-        ):
-            raise ValueError(
-                "Only one of guardrail_database_list, guardrail_database_exclusion_list should be set"
-            )
+        """Set default guardrail_database_list."""
+        if self.guardrail_database_list is not None and self.guardrail_database_exclusion_list is not None:
+            raise ValueError("Only one of guardrail_database_list, guardrail_database_exclusion_list should be set")
         if self.guardrail_database_list is None:
-            self.guardrail_database_list = cast(
-                List[DatabaseNamespace], list(DatabaseNamespace)
-            )
+            self.guardrail_database_list = cast("List[DatabaseNamespace]", list(DatabaseNamespace))
         if self.guardrail_database_exclusion_list is not None:
             self.guardrail_database_list = [
-                x
-                for x in self.guardrail_database_list
-                if x not in self.guardrail_database_exclusion_list
+                x for x in self.guardrail_database_list if x not in self.guardrail_database_exclusion_list
             ]
 
 
@@ -788,7 +736,7 @@ class Minefield(Milestone):
 
 @define
 class CachedSimilarityCalculator:
-    """Given a fully played out execution_context, attempt to calculate & cache similarity scores
+    """Given a fully played out execution_context, attempt to calculate & cache similarity scores.
 
     Each SnapshotConstraint depends on two snapshots, the current snapshot and a reference snapshot.
     Remember that only when database was updated do we create a new snapshot. Meaning for each database,
@@ -805,18 +753,12 @@ class CachedSimilarityCalculator:
     # Bucket boundary, constructed in post_init. Adjacent pairs of indices form a left inclusive right exclusive bucket
     database_bucket_boundary: Dict[DatabaseNamespace, List[int]] = field(init=False)
     # Cache for SnapshotConstraint
-    snapshot_constraint_similarity_cache: List[
-        Dict[Tuple[int, Optional[int]], float]
-    ] = field(init=False)
+    snapshot_constraint_similarity_cache: List[Dict[Tuple[int, Optional[int]], float]] = field(init=False)
     # Index of the first snapshot, contains initial world state. reference_milestone_node_index == -1 refers to this.
     first_user_message_snapshot_index: int = field(init=False)
 
     def __attrs_post_init__(self) -> None:
-        """Build similarity cache for each SnapshotConstraint within milestone
-
-        Returns:
-
-        """
+        """Build similarity cache for each SnapshotConstraint within milestone."""
         # Construct bucket boundary according to execution context
         database_bucket_boundary: Dict[DatabaseNamespace, List[int]] = {}
         for database_namespace in DatabaseNamespace:
@@ -828,26 +770,20 @@ class CachedSimilarityCalculator:
                 drop_headguard=False,
             )
             database_bucket_boundary[database_namespace] = (
-                database.select(pl.col("sandbox_message_index"))
-                .unique()["sandbox_message_index"]
-                .to_list()
+                database.select(pl.col("sandbox_message_index")).unique()["sandbox_message_index"].to_list()
             )
         self.database_bucket_boundary = database_bucket_boundary
         # Initialize cache
-        self.snapshot_constraint_similarity_cache = [
-            {} for _ in range(len(self.milestone.snapshot_constraints))
-        ]
+        self.snapshot_constraint_similarity_cache = [{} for _ in range(len(self.milestone.snapshot_constraints))]
         # Initialize according to execution context
-        self.first_user_message_snapshot_index: int = (
-            self.execution_context.first_user_sandbox_message_index
-        )
+        self.first_user_message_snapshot_index: int = self.execution_context.first_user_sandbox_message_index
 
     def calculate_similarity(
         self,
         current_snapshot_index: int,
         milestone_snapshot_mapping: Dict[int, Tuple[int, float]],
     ) -> float:
-        """Calculate milestone similarity given the current snapshot index and previous mappings
+        """Calculate milestone similarity given the current snapshot index and previous mappings.
 
         Caching happens automatically. Calculates Geometric mean of all SnapshotConstraint similarities.
         Guardrail constraints are an exception. If all guardrail constraint similarities are 1, they are all excluded
@@ -868,7 +804,7 @@ class CachedSimilarityCalculator:
         # `dict[Optional[K], V]` so we use a cast.
         patched_snapshot_mapping = {
             **cast(
-                dict[Optional[int], tuple[Optional[int], float]],
+                "dict[Optional[int], tuple[Optional[int], float]]",
                 milestone_snapshot_mapping,
             ),
             -1: (self.first_user_message_snapshot_index, 0),
@@ -877,11 +813,10 @@ class CachedSimilarityCalculator:
         for constraint, cache in zip(
             self.milestone.snapshot_constraints,
             self.snapshot_constraint_similarity_cache,
+            strict=False,
         ):
             # Find snapshots
-            reference_snapshot_index, _ = patched_snapshot_mapping[
-                constraint.reference_milestone_node_index
-            ]
+            reference_snapshot_index, _ = patched_snapshot_mapping[constraint.reference_milestone_node_index]
             # Create cache key. (current_snapshot_index, reference_snapshot_index)
             cache_key = (current_snapshot_index, reference_snapshot_index)
             if cache_key not in cache:
@@ -907,9 +842,7 @@ class CachedSimilarityCalculator:
             similarity *= cache[cache_key]
             # Exclude guardrails from similarity count. Since guardrails are 0 / 1, no adjustment needs to be made
             # on accumulation
-            similarity_count += int(
-                constraint.snapshot_constraint is not guardrail_similarity
-            )
+            similarity_count += int(constraint.snapshot_constraint is not guardrail_similarity)
         # Return geometric mean
         return math.pow(similarity, 1 / similarity_count)
 
@@ -936,30 +869,22 @@ def get_effective_turn_count(sandbox_database: pl.DataFrame) -> int:
     # 3. User simulator few shot messages (denoted by visible_to == [RoleType.USER])
     system_message_filter = pl.col("sender") != RoleType.SYSTEM
     user_exec_env_filter = ~(
-        (
-            (pl.col("sender") == RoleType.USER)
-            & (pl.col("recipient") == RoleType.EXECUTION_ENVIRONMENT)
-        )
-        | (
-            (pl.col("sender") == RoleType.EXECUTION_ENVIRONMENT)
-            & (pl.col("recipient") == RoleType.USER)
-        )
+        ((pl.col("sender") == RoleType.USER) & (pl.col("recipient") == RoleType.EXECUTION_ENVIRONMENT))
+        | ((pl.col("sender") == RoleType.EXECUTION_ENVIRONMENT) & (pl.col("recipient") == RoleType.USER))
     )
     user_sim_few_shot_filter = pl.col("visible_to") != [RoleType.USER]
-    filtered_df = sandbox_database.filter(
-        system_message_filter & user_exec_env_filter & user_sim_few_shot_filter
-    )
+    filtered_df = sandbox_database.filter(system_message_filter & user_exec_env_filter & user_sim_few_shot_filter)
     if filtered_df.is_empty():
         return 0
     return cast(
-        int,
+        "int",
         filtered_df.with_columns(pl.len())["len"][0],
     )
 
 
 @define
 class EvaluationResult:
-    """Contains results about milestone mapping, coarse / finegrained similarity"""
+    """Contains results about milestone mapping, coarse / finegrained similarity."""
 
     # ith object in this list contains (snapshot_index, similarity score) for ith milestone
     milestone_mapping: OrderedDict[int, Tuple[int, float]] = Factory(OrderedDict)
@@ -976,10 +901,8 @@ class EvaluationResult:
     turn_count: int = 0
 
     def __attrs_post_init__(self) -> None:
-        # Combine milestone and minefield. If minefield_similarity != 0, nullify everything.
-        self.similarity = (
-            int(self.minefield_similarity == 0) * self.milestone_similarity
-        )
+        """Combine milestone and minefield. If minefield_similarity != 0, nullify everything."""
+        self.similarity = int(self.minefield_similarity == 0) * self.milestone_similarity
 
 
 @define
@@ -994,12 +917,9 @@ class MilestoneMatcher:
     milestone_dag: "networkx.DiGraph[int]" = field(init=False)
 
     def _add_guardrail_constraints(self) -> None:
-        """Add guardrail constraints to existing milestones
+        """Add guardrail constraints to existing milestones.
 
         Guardrails are applied between current milestone and its reference nodes, as well as its predecessors.
-
-        Returns:
-
         """
         for i in self.milestone_dag.nodes:
             # Guardrails are applied between current milestone and its reference nodes, as well as
@@ -1018,7 +938,7 @@ class MilestoneMatcher:
                 if self.milestones[i].guardrail_database_list is None
                 else set(
                     cast(
-                        list[DatabaseNamespace],
+                        "list[DatabaseNamespace]",
                         self.milestones[i].guardrail_database_list,
                     )
                 )
@@ -1041,6 +961,7 @@ class MilestoneMatcher:
                 )
 
     def __attrs_post_init__(self) -> None:
+        """Construct milestone DAG and add guardrail constraints."""
         if self.edge_list is None:
             self.edge_list = [(i, i + 1) for i in range(len(self.milestones) - 1)]
         # if milestones contain only 1 node, create a graph with 1 node and no edges, otherwise create one with
@@ -1063,7 +984,7 @@ class MilestoneMatcher:
         min_snapshot_index: int,
         max_snapshot_index: int,
     ) -> Tuple[OrderedDict[int, Tuple[int, float]], float]:
-        """Solve for best mapping using dfs + max heap
+        """Solve for best mapping using dfs + max heap.
 
         Prunes a branch if there's no chance for the branch to match better than current best similarity.
 
@@ -1085,9 +1006,7 @@ class MilestoneMatcher:
             return assigned_mapping, assigned_similarity_sum
         # The most recent assignment. Next assignment must larger than this
         last_assigned_snapshot_index = (
-            assigned_mapping[next(reversed(assigned_mapping))][0]
-            if assigned_mapping
-            else min_snapshot_index
+            assigned_mapping[next(reversed(assigned_mapping))][0] if assigned_mapping else min_snapshot_index
         )
         # Best mapping and best similarity sum across all possible next mappings
         best_assigned_mapping: OrderedDict[int, Tuple[int, float]] = OrderedDict()
@@ -1096,19 +1015,16 @@ class MilestoneMatcher:
         # Each element is (-similarity, milestone_index, snapshot_index) to ensure similarity is maximized
         max_heap: List[Tuple[float, int, int]] = []
         # Take the next milestone with 0 in degree
-        for current_milestone_index, in_degree in remaining_graph.in_degree():
+        # ? in_degree is not typed properly somehow. It does provide a iterable but mypy doesn't like it for some reason.
+        for current_milestone_index, in_degree in remaining_graph.in_degree():  # type: ignore
             if in_degree > 0:
                 continue
             # Iterate through possible assignments
             # Going from the back ensures that when multiple index have the same current similarity,
             # latter ones gets prioritized.
-            for current_snapshot_index in reversed(
-                range(last_assigned_snapshot_index, max_snapshot_index + 1)
-            ):
+            for current_snapshot_index in reversed(range(last_assigned_snapshot_index, max_snapshot_index + 1)):
                 # Get similarity
-                current_similarity: float = similarity_calculators[
-                    current_milestone_index
-                ].calculate_similarity(
+                current_similarity: float = similarity_calculators[current_milestone_index].calculate_similarity(
                     current_snapshot_index=current_snapshot_index,
                     milestone_snapshot_mapping=assigned_mapping,
                 )
@@ -1131,10 +1047,7 @@ class MilestoneMatcher:
             current_similarity = -negative_current_similarity
             # Prune branches. If it is impossible for this branch to beat current_best_similarity_sum, prune
             if (
-                assigned_similarity_sum
-                + current_similarity
-                + remaining_graph.number_of_nodes()
-                - 1
+                assigned_similarity_sum + current_similarity + remaining_graph.number_of_nodes() - 1
                 <= best_assigned_similarity_sum
             ):
                 continue
@@ -1190,9 +1103,7 @@ class MilestoneMatcher:
             return OrderedDict(), None
         # Construct similarity calculators. These calculators have caching built in
         milestone_similarity_calculators: List[CachedSimilarityCalculator] = [
-            CachedSimilarityCalculator(
-                execution_context=execution_context, milestone=milestone
-            )
+            CachedSimilarityCalculator(execution_context=execution_context, milestone=milestone)
             for milestone in self.milestones
         ]
         # Minimum / Maximum snapshot index to match to
@@ -1214,7 +1125,7 @@ class MilestoneMatcher:
 
 @define
 class Evaluation:
-    """Defining the process needed for evaluating a completed ExecutionContext"""
+    """Defining the process needed for evaluating a completed ExecutionContext."""
 
     # A Milestone Matcher. Contains milestone definition for this Evaluation, as well as utilities for matching
     # milestones against a trajectory
@@ -1223,10 +1134,8 @@ class Evaluation:
     # minefields against a trajectory
     minefield_matcher: MilestoneMatcher = Factory(MilestoneMatcher)
 
-    def evaluate(
-        self, execution_context: ExecutionContext, max_turn_count: int
-    ) -> EvaluationResult:
-        """Evaluate a completed ExecutionContext
+    def evaluate(self, execution_context: ExecutionContext, max_turn_count: int) -> EvaluationResult:
+        """Evaluate a completed ExecutionContext.
 
         Calculate Milestone and Minefield similarities, combine them.
         Calculate effective turn count.
@@ -1243,31 +1152,21 @@ class Evaluation:
         Raises:
             IndexError: No Milestone found
         """
-        milestone_mapping, milestone_similarity = (
-            self.milestone_matcher.compute_mapping_and_similarity(
-                execution_context=execution_context
-            )
+        milestone_mapping, milestone_similarity = self.milestone_matcher.compute_mapping_and_similarity(
+            execution_context=execution_context
         )
         # If no milestones are found, the default milestone_similarity is 1
-        milestone_similarity = (
-            1 if milestone_similarity is None else milestone_similarity
-        )
+        milestone_similarity = 1 if milestone_similarity is None else milestone_similarity
 
-        minefield_mapping, minefield_similarity = (
-            self.minefield_matcher.compute_mapping_and_similarity(
-                execution_context=execution_context
-            )
+        minefield_mapping, minefield_similarity = self.minefield_matcher.compute_mapping_and_similarity(
+            execution_context=execution_context
         )
         # If no minefields are found, the default minefield_similarity is 0
-        minefield_similarity = (
-            0 if minefield_similarity is None else minefield_similarity
-        )
+        minefield_similarity = 0 if minefield_similarity is None else minefield_similarity
 
         # Calculate turn count
         turn_count = get_effective_turn_count(
-            execution_context.get_database(
-                DatabaseNamespace.SANDBOX, get_all_history_snapshots=True
-            )
+            execution_context.get_database(DatabaseNamespace.SANDBOX, get_all_history_snapshots=True)
         )
         # Sort mapping according to milestone index
         return EvaluationResult(

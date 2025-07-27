@@ -1,6 +1,6 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Simulated user role for any model that conforms to OpenAI tool use API"""
+"""Simulated user role for any model that conforms to OpenAI tool use API."""
 
 from logging import getLogger
 from typing import Dict, Iterable, List, Literal, Optional, Union, cast
@@ -26,19 +26,20 @@ LOGGER = getLogger(__name__)
 
 
 class OpenAIAPIUser(BaseRole):
-    """Simulated user role for any model that conforms to OpenAI tool use API"""
+    """Simulated user role for any model that conforms to OpenAI tool use API."""
 
     role_type: RoleType = RoleType.USER
     model_name: str
 
     def __init__(self) -> None:
+        """Initialize the OpenAI API user."""
         # We set the `base_url` explicitly here to avoid picking up the
         # `OPENAI_BASE_URL` environment variable that may be set for serving models as
         # OpenAI API compatible servers.
         self.openai_client: OpenAI = OpenAI(base_url="https://api.openai.com/v1")
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
 
         Specifically, interprets system & agent messages, sends out valid followup responses back to agent
 
@@ -78,16 +79,14 @@ class OpenAIAPIUser(BaseRole):
         )
         # We need a cast here since `convert_to_openai_tool` returns a plain dict, but
         # `ChatCompletionToolParam` is a `TypedDict`.
-        openai_tools = cast(
-            Union[Iterable[ChatCompletionToolParam], NotGiven],
+        openai_tools = cast(  # type: ignore[assignment]
+            "Union[Iterable[ChatCompletionToolParam], NotGiven]",
             openai_tools,
         )
         # Convert to OpenAI messages
         openai_messages = self.to_openai_messages(messages=messages)
         # Call model
-        response = self.model_inference(
-            openai_messages=openai_messages, openai_tools=openai_tools
-        )
+        response = self.model_inference(openai_messages=openai_messages, openai_tools=openai_tools)  # type: ignore[arg-type]
         # Parse response
         openai_response_message = response.choices[0].message
 
@@ -119,15 +118,13 @@ class OpenAIAPIUser(BaseRole):
                 )
         self.add_messages(response_messages)
 
-    @retry(
-        wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3)
-    )
+    @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
     def model_inference(
         self,
         openai_messages: list[dict[Literal["role", "content"], str]],
         openai_tools: Union[Iterable[ChatCompletionToolParam], NotGiven],
     ) -> ChatCompletion:
-        """Run OpenAI model inference
+        """Run OpenAI model inference.
 
         Args:
             openai_messages:    List of OpenAI API format messages
@@ -139,7 +136,7 @@ class OpenAIAPIUser(BaseRole):
         with all_logging_disabled():
             return self.openai_client.chat.completions.create(
                 model=self.model_name,
-                messages=cast(list[ChatCompletionMessageParam], openai_messages),
+                messages=cast("list[ChatCompletionMessageParam]", openai_messages),
                 tools=openai_tools,
             )
 
@@ -147,7 +144,7 @@ class OpenAIAPIUser(BaseRole):
     def to_openai_messages(
         messages: List[Message],
     ) -> List[Dict[Literal["role", "content"], str]]:
-        """Converts a list of Tool Sandbox messages to OpenAI API messages, from the perspective of a simulated user
+        """Converts a list of Tool Sandbox messages to OpenAI API messages, from the perspective of a simulated user.
 
         Args:
             messages:   A list of Tool Sandbox messages
@@ -159,42 +156,36 @@ class OpenAIAPIUser(BaseRole):
         for message in messages:
             if message.sender == RoleType.SYSTEM and message.recipient == RoleType.USER:
                 openai_messages.append({"role": "system", "content": message.content})
-            elif (
-                message.sender == RoleType.AGENT and message.recipient == RoleType.USER
-            ):
+            elif message.sender == RoleType.AGENT and message.recipient == RoleType.USER:
                 # The roles are in reverse
                 # We are the user simulator, simulated response from OpenAI assistant role is the simulated user message
                 # which means agent dialog is OpenAI user role
                 openai_messages.append({"role": "user", "content": message.content})
-            elif (
-                message.sender == RoleType.USER and message.recipient == RoleType.AGENT
-            ):
-                openai_messages.append(
-                    {"role": "assistant", "content": message.content}
-                )
-            elif (
-                message.sender == RoleType.USER
-                and message.recipient == RoleType.EXECUTION_ENVIRONMENT
-            ) or (
-                message.sender == RoleType.EXECUTION_ENVIRONMENT
-                and message.recipient == RoleType.USER
+            elif message.sender == RoleType.USER and message.recipient == RoleType.AGENT:
+                openai_messages.append({"role": "assistant", "content": message.content})
+            elif (message.sender == RoleType.USER and message.recipient == RoleType.EXECUTION_ENVIRONMENT) or (
+                message.sender == RoleType.EXECUTION_ENVIRONMENT and message.recipient == RoleType.USER
             ):
                 # These pairs are ignored.
                 pass
             else:
-                raise ValueError(
-                    f"Unrecognized sender recipient pair {(message.sender, message.recipient)}"
-                )
+                raise ValueError(f"Unrecognized sender recipient pair {(message.sender, message.recipient)}")
         return openai_messages
 
 
-class GPT_3_5_0125_User(OpenAIAPIUser):
+class GPT_3_5_0125_User(OpenAIAPIUser):  # noqa: N801
+    """GPT-3.5 0125 user."""
+
     model_name = "gpt-3.5-turbo-0125"
 
 
-class GPT_4_0125_User(OpenAIAPIUser):
+class GPT_4_0125_User(OpenAIAPIUser):  # noqa: N801
+    """GPT-4 0125 user."""
+
     model_name = "gpt-4-0125-preview"
 
 
-class GPT_4_o_2024_05_13_User(OpenAIAPIUser):
+class GPT_4_o_2024_05_13_User(OpenAIAPIUser):  # noqa: N801
+    """GPT-4o 2024-05-13 user."""
+
     model_name = "gpt-4o-2024-05-13"

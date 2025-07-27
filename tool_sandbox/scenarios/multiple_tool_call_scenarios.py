@@ -1,9 +1,8 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Scenarios where more than 1 tool call to be issued to complete the task"""
+"""Scenarios where more than 1 tool call to be issued to complete the task."""
 
 import datetime
-
 import json
 from functools import partial
 
@@ -49,9 +48,12 @@ from tool_sandbox.scenarios.user_simulator_few_shot_examples import (
     named_user_simulator_few_shot_examples,
 )
 
+# Ignore arg-type errors for the following code.
+# mypy: disable-error-code="arg-type"
+
 
 def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtension]:
-    """Specify test scenario as extensions over a base scenario
+    """Specify test scenario as extensions over a base scenario.
 
     Returns:
         A list of ScenarioExtensions
@@ -122,9 +124,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Good, keep me posted",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -194,9 +194,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Good, keep me posted",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -286,9 +284,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Hey kid, you want some GPU?",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -378,9 +374,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Hey kid, you want some GPU?",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -645,8 +639,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Delete a contact by phone number +12453344098. "
+                    "content": USER_INSTRUCTION + "Delete a contact by phone number +12453344098. "
                     "You do not have any more information.",
                 },
                 {
@@ -669,9 +662,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "tool_trace": json.dumps(
                                         {
                                             "tool_name": "search_contacts",
-                                            "arguments": {
-                                                "phone_number": "+12453344098"
-                                            },
+                                            "arguments": {"phone_number": "+12453344098"},
                                         },
                                         ensure_ascii=False,
                                     ),
@@ -721,8 +712,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Delete a contact by phone number +12453344098. "
+                    "content": USER_INSTRUCTION + "Delete a contact by phone number +12453344098. "
                     "You do not have any more information.",
                 },
                 {
@@ -746,9 +736,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "tool_trace": json.dumps(
                                         {
                                             "tool_name": "search_contacts",
-                                            "arguments": {
-                                                "phone_number": "+12453344098"
-                                            },
+                                            "arguments": {"phone_number": "+12453344098"},
                                         },
                                         ensure_ascii=False,
                                     ),
@@ -798,8 +786,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Delete a contact by phone number +12453344098. "
+                    "content": USER_INSTRUCTION + "Delete a contact by phone number +12453344098. "
                     "You do not have any more information.",
                 },
                 {
@@ -822,9 +809,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "tool_trace": json.dumps(
                                         {
                                             "tool_name": "search_contacts",
-                                            "arguments": {
-                                                "phone_number": "+12453344098"
-                                            },
+                                            "arguments": {"phone_number": "+12453344098"},
                                         },
                                         ensure_ascii=False,
                                     ),
@@ -874,8 +859,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Delete a contact by phone number +12453344098. "
+                    "content": USER_INSTRUCTION + "Delete a contact by phone number +12453344098. "
                     "You do not have any more information.",
                 },
                 {
@@ -898,9 +882,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "tool_trace": json.dumps(
                                         {
                                             "tool_name": "search_contacts",
-                                            "arguments": {
-                                                "phone_number": "+12453344098"
-                                            },
+                                            "arguments": {"phone_number": "+12453344098"},
                                         },
                                         ensure_ascii=False,
                                     ),
@@ -945,9 +927,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="turn_on_wifi_low_battery_mode",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 {
                     "sender": RoleType.SYSTEM,
@@ -1013,9 +993,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="turn_on_wifi_low_battery_mode_implicit",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 {
                     "sender": RoleType.SYSTEM,
@@ -1081,9 +1059,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="turn_on_cellular_low_battery_mode",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 {
                     "sender": RoleType.SYSTEM,
@@ -1149,9 +1125,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="turn_on_cellular_low_battery_mode_implicit",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 {
                     "sender": RoleType.SYSTEM,
@@ -1217,9 +1191,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="turn_on_location_low_battery_mode",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 {
                     "sender": RoleType.SYSTEM,
@@ -1285,15 +1257,12 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="turn_on_location_low_battery_mode_implicit",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Turn on location service, but be implicit.",
+                    "content": USER_INSTRUCTION + "Turn on location service, but be implicit.",
                 },
                 {
                     "sender": RoleType.USER,
@@ -1719,8 +1688,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search how many days it is till Christmas Day. "
+                    "content": USER_INSTRUCTION + "Search how many days it is till Christmas Day. "
                     "You do not have any more information.",
                 },
                 {
@@ -1885,9 +1853,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "{days}",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                             reference_milestone_node_index=2,
                         ),
                     ]
@@ -1903,8 +1869,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search how many days it is till Christmas Day. "
+                    "content": USER_INSTRUCTION + "Search how many days it is till Christmas Day. "
                     "You do not have any more information.",
                 },
                 {
@@ -2069,9 +2034,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "{days}",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                             reference_milestone_node_index=2,
                         ),
                     ]
@@ -2087,8 +2050,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search how many days it is till Christmas Day. "
+                    "content": USER_INSTRUCTION + "Search how many days it is till Christmas Day. "
                     "You do not have any more information.",
                 },
                 {
@@ -2269,9 +2231,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "{days}",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                             reference_milestone_node_index=3,
                         ),
                     ]
@@ -2290,8 +2250,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search how many days it is till Christmas Day. "
+                    "content": USER_INSTRUCTION + "Search how many days it is till Christmas Day. "
                     "You do not have any more information.",
                 },
                 {
@@ -2472,9 +2431,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "{days}",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                             reference_milestone_node_index=3,
                         ),
                     ]
@@ -2495,8 +2452,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search What's the temperature in Grand Canyon in Fahrenheit. "
+                    "content": USER_INSTRUCTION + "Search What's the temperature in Grand Canyon in Fahrenheit. "
                     "You do not have any more information.",
                 },
                 {
@@ -2615,9 +2571,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "{temperature}",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                             reference_milestone_node_index=1,
                         ),
                     ]
@@ -2632,8 +2586,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search What's the temperature in Grand Canyon in Fahrenheit. "
+                    "content": USER_INSTRUCTION + "Search What's the temperature in Grand Canyon in Fahrenheit. "
                     "You do not have any more information.",
                 },
                 {
@@ -2752,9 +2705,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "{temperature}",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                             reference_milestone_node_index=1,
                         ),
                     ]
@@ -2769,8 +2720,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search What's the temperature in Grand Canyon in Fahrenheit. "
+                    "content": USER_INSTRUCTION + "Search What's the temperature in Grand Canyon in Fahrenheit. "
                     "You do not have any more information.",
                 },
                 {
@@ -2904,9 +2854,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "{temperature}",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                             reference_milestone_node_index=2,
                         ),
                     ]
@@ -2924,8 +2872,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search What's the temperature in Grand Canyon in Fahrenheit. "
+                    "content": USER_INSTRUCTION + "Search What's the temperature in Grand Canyon in Fahrenheit. "
                     "You do not have any more information.",
                 },
                 {
@@ -3059,9 +3006,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "{temperature}",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                             reference_milestone_node_index=2,
                         ),
                     ]
@@ -3074,9 +3019,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="find_temperature_low_battery_mode",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 *user_simulator_few_shot_examples["find_temperature_low_battery_mode"],
                 {
@@ -3204,9 +3147,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="find_temperature_low_battery_mode_alt",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 *user_simulator_few_shot_examples["find_temperature_low_battery_mode"],
                 {
@@ -3334,9 +3275,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="find_stock_symbol_with_company_name_low_battery_mode",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 *user_simulator_few_shot_examples["find_temperature_low_battery_mode"],
                 {
@@ -3431,9 +3370,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "AAPL",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -3444,9 +3381,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="find_stock_symbol_with_company_name_low_battery_mode_alt",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 *user_simulator_few_shot_examples["find_temperature_low_battery_mode"],
                 {
@@ -3541,9 +3476,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "AAPL",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -3554,16 +3487,13 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="find_current_city_low_battery_mode",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 *user_simulator_few_shot_examples["find_temperature_low_battery_mode"],
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for the city you (User A) are currently in. "
+                    "content": USER_INSTRUCTION + "Search for the city you (User A) are currently in. "
                     "You do not have any more information.",
                 },
                 {
@@ -3692,9 +3622,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Cupertino",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -3706,16 +3634,13 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
         ),
         ScenarioExtension(
             name="find_current_city_low_battery_mode_alt",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 *user_simulator_few_shot_examples["find_temperature_low_battery_mode"],
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for the city you (User A) are currently in. "
+                    "content": USER_INSTRUCTION + "Search for the city you (User A) are currently in. "
                     "You do not have any more information.",
                 },
                 {
@@ -3844,9 +3769,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Cupertino",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -3864,8 +3787,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for the distance to Golden Gate Bridge. "
+                    "content": USER_INSTRUCTION + "Search for the distance to Golden Gate Bridge. "
                     "You do not have information about your current location.",
                 },
                 {
@@ -3975,8 +3897,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for the distance to Golden Gate Bridge. "
+                    "content": USER_INSTRUCTION + "Search for the distance to Golden Gate Bridge. "
                     "You do not have information about your current location.",
                 },
                 {
@@ -4182,9 +4103,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Buy a nice rich navy bathing dress",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -4294,9 +4213,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Buy a nice rich navy bathing dress",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -4393,9 +4310,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Look for Company SF tickets",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -4492,9 +4407,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Look for Company SF tickets",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -4592,9 +4505,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Buy tickets for Merrily next week",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -4692,9 +4603,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                     "content": "Buy tickets for Merrily next week",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -4708,8 +4617,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B create a reminder to buy chocolate milk 3/22/2024 5PM. "
+                    "content": USER_INSTRUCTION + "Ask User B create a reminder to buy chocolate milk 3/22/2024 5PM. "
                     "You do not have any more information.",
                 },
                 {
@@ -4774,8 +4682,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B create a reminder to buy chocolate milk 3/22/2024 5PM. "
+                    "content": USER_INSTRUCTION + "Ask User B create a reminder to buy chocolate milk 3/22/2024 5PM. "
                     "You do not have any more information.",
                 },
                 {
@@ -4841,8 +4748,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B create a reminder to buy chocolate milk tomorrow 5PM. "
+                    "content": USER_INSTRUCTION + "Ask User B create a reminder to buy chocolate milk tomorrow 5PM. "
                     "You do not have any more information.",
                 },
                 {
@@ -4910,8 +4816,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B create a reminder to buy chocolate milk tomorrow 5PM. "
+                    "content": USER_INSTRUCTION + "Ask User B create a reminder to buy chocolate milk tomorrow 5PM. "
                     "You do not have any more information.",
                 },
                 {
@@ -4979,8 +4884,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B create a reminder to buy chocolate milk next Friday 5PM. "
+                    "content": USER_INSTRUCTION + "Ask User B create a reminder to buy chocolate milk next Friday 5PM. "
                     "You do not have any more information.",
                 },
                 {
@@ -5027,15 +4931,9 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                 {
                                     "content": "Buy chocolate milk",
                                     "reminder_timestamp": datetime.datetime(
-                                        year=get_next_iso_weekday_datetime(
-                                            next_iso_weekday=5
-                                        ).year,
-                                        month=get_next_iso_weekday_datetime(
-                                            next_iso_weekday=5
-                                        ).month,
-                                        day=get_next_iso_weekday_datetime(
-                                            next_iso_weekday=5
-                                        ).day,
+                                        year=get_next_iso_weekday_datetime(next_iso_weekday=5).year,
+                                        month=get_next_iso_weekday_datetime(next_iso_weekday=5).month,
+                                        day=get_next_iso_weekday_datetime(next_iso_weekday=5).day,
                                         hour=17,
                                     ).timestamp(),
                                 }
@@ -5054,8 +4952,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B create a reminder to buy chocolate milk next Friday 5PM. "
+                    "content": USER_INSTRUCTION + "Ask User B create a reminder to buy chocolate milk next Friday 5PM. "
                     "You do not have any more information.",
                 },
                 {
@@ -5102,15 +4999,9 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                                 {
                                     "content": "Buy chocolate milk",
                                     "reminder_timestamp": datetime.datetime(
-                                        year=get_next_iso_weekday_datetime(
-                                            next_iso_weekday=5
-                                        ).year,
-                                        month=get_next_iso_weekday_datetime(
-                                            next_iso_weekday=5
-                                        ).month,
-                                        day=get_next_iso_weekday_datetime(
-                                            next_iso_weekday=5
-                                        ).day,
+                                        year=get_next_iso_weekday_datetime(next_iso_weekday=5).year,
+                                        month=get_next_iso_weekday_datetime(next_iso_weekday=5).month,
+                                        day=get_next_iso_weekday_datetime(next_iso_weekday=5).day,
                                         hour=17,
                                     ).timestamp(),
                                 }
@@ -5129,8 +5020,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B create a reminder to buy chocolate milk tomorrow 5PM "
+                    "content": USER_INSTRUCTION + "Ask User B create a reminder to buy chocolate milk tomorrow 5PM "
                     "at Whole Foods on Stevens Creek. "
                     "You do not have any more information.",
                 },
@@ -5236,8 +5126,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B create a reminder to buy chocolate milk tomorrow 5PM at "
+                    "content": USER_INSTRUCTION + "Ask User B create a reminder to buy chocolate milk tomorrow 5PM at "
                     "Whole Foods on Stevens Creek. "
                     "You do not have any more information.",
                 },
@@ -5343,8 +5232,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B to postpone your most recent reminder to tomorrow 5PM."
+                    "content": USER_INSTRUCTION + "Ask User B to postpone your most recent reminder to tomorrow 5PM."
                     "You do not have any more information.",
                 },
                 {
@@ -5414,9 +5302,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                             snapshot_constraint=update_similarity,
                             target_dataframe=pl.DataFrame(
                                 {
-                                    "reminder_id": deterministic_uuid(
-                                        payload="reminder_2"
-                                    ),
+                                    "reminder_id": deterministic_uuid(payload="reminder_2"),
                                     "reminder_timestamp": datetime.datetime(
                                         year=get_tomorrow_datetime().year,
                                         month=get_tomorrow_datetime().month,
@@ -5440,8 +5326,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B to postpone your upcoming reminder to tomorrow 5PM."
+                    "content": USER_INSTRUCTION + "Ask User B to postpone your upcoming reminder to tomorrow 5PM."
                     "You do not have any more information.",
                 },
                 {
@@ -5511,9 +5396,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                             snapshot_constraint=update_similarity,
                             target_dataframe=pl.DataFrame(
                                 {
-                                    "reminder_id": deterministic_uuid(
-                                        payload="reminder_2"
-                                    ),
+                                    "reminder_id": deterministic_uuid(payload="reminder_2"),
                                     "reminder_timestamp": datetime.datetime(
                                         year=get_tomorrow_datetime().year,
                                         month=get_tomorrow_datetime().month,
@@ -5537,8 +5420,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B to remove your upcoming reminder."
+                    "content": USER_INSTRUCTION + "Ask User B to remove your upcoming reminder."
                     "You do not have any more information.",
                 },
                 {
@@ -5608,9 +5490,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                             snapshot_constraint=removal_similarity,
                             target_dataframe=pl.DataFrame(
                                 {
-                                    "reminder_id": deterministic_uuid(
-                                        payload="reminder_2"
-                                    ),
+                                    "reminder_id": deterministic_uuid(payload="reminder_2"),
                                 }
                             ),
                             reference_milestone_node_index=0,
@@ -5628,8 +5508,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B to remove your upcoming reminder."
+                    "content": USER_INSTRUCTION + "Ask User B to remove your upcoming reminder."
                     "You do not have any more information.",
                 },
                 {
@@ -5699,9 +5578,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
                             snapshot_constraint=removal_similarity,
                             target_dataframe=pl.DataFrame(
                                 {
-                                    "reminder_id": deterministic_uuid(
-                                        payload="reminder_2"
-                                    ),
+                                    "reminder_id": deterministic_uuid(payload="reminder_2"),
                                 }
                             ),
                             reference_milestone_node_index=0,
@@ -5718,7 +5595,7 @@ def get_extensions(base_scenarios: dict[str, Scenario]) -> list[ScenarioExtensio
 def named_multiple_tool_call_scenarios(
     preferred_tool_backend: ToolBackend,
 ) -> dict[str, Scenario]:
-    """Scenarios where more than 1 tool call to be issued to complete the task
+    """Scenarios where more than 1 tool call to be issued to complete the task.
 
     Note that this differs from the simple / multi definition of Gorilla. All scenarios below have only the necessary
     tools provided to the model. Additional scenarios will be created to introduce distractions as well.
@@ -5729,9 +5606,7 @@ def named_multiple_tool_call_scenarios(
     Returns:
         A dict containing scenario name and scenario
     """
-    extensions = get_extensions(
-        named_base_scenarios(preferred_tool_backend=preferred_tool_backend)
-    )
+    extensions = get_extensions(named_base_scenarios(preferred_tool_backend=preferred_tool_backend))
     # All scenarios in this module should be single user turn, multiple tool. Add these categories if they aren't there
     for extension in extensions:
         for default_categories in [
@@ -5740,8 +5615,4 @@ def named_multiple_tool_call_scenarios(
         ]:
             if default_categories not in extension.categories:
                 extension.categories.append(default_categories)
-    return {
-        key: scenario
-        for extension in extensions
-        for key, scenario in extension.get_extended_scenario().items()
-    }
+    return {key: scenario for extension in extensions for key, scenario in extension.get_extended_scenario().items()}

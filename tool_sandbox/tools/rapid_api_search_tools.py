@@ -1,7 +1,7 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""
-A collection of tools which simulates common functions used for searching over an index.
+"""A collection of tools which simulates common functions used for searching over an index.
+
 Tools listed in this category are backed by RapidAPI hosted web service requests.
 """
 
@@ -29,7 +29,7 @@ from tool_sandbox.tools.setting import (
 def maybe_get_current_lat_lon(
     latitude: Optional[float] = None, longitude: Optional[float] = None
 ) -> tuple[float, float]:
-    """No-op if latitude and longitude are both provided. Otherwise return current location latitude longitude
+    """No-op if latitude and longitude are both provided. Otherwise return current location latitude longitude.
 
     Args:
         latitude:           Defaults to current latitude if not provided
@@ -47,22 +47,18 @@ def maybe_get_current_lat_lon(
     validate_longitude(longitude, "longitude", Optional[float])
 
     if (latitude is None) ^ (longitude is None):
-        raise ValueError(
-            "Latitude and Longitude must be either both provided, or both not provided"
-        )
+        raise ValueError("Latitude and Longitude must be either both provided, or both not provided")
     if latitude is None and longitude is None:
         if not get_location_service_status():
             raise PermissionError("Location service is not enabled.")
         current_location = get_current_location()
         latitude = current_location["latitude"]
         longitude = current_location["longitude"]
-    assert latitude is not None and longitude is not None
+    assert latitude is not None and longitude is not None  # noqa: PT018
     return latitude, longitude
 
 
-def rapid_api_get_request(
-    url: str, params: dict[str, Any], headers: dict[str, Any]
-) -> dict[str, Any]:
+def rapid_api_get_request(url: str, params: dict[str, Any], headers: dict[str, Any]) -> dict[str, Any]:
     """Make a Rapid API Get request and get the response.
 
     Args:
@@ -82,7 +78,7 @@ def rapid_api_get_request(
             "You can find your API key by following https://docs.rapidapi.com/v1.0/docs/keys"
         )
     return cast(
-        dict[str, Any],
+        "dict[str, Any]",
         requests.get(
             url=url,
             headers={**headers, "X-RapidAPI-Key": os.environ["RAPID_API_KEY"]},
@@ -97,7 +93,7 @@ def search_lat_lon(
     latitude: float,
     longitude: float,
 ) -> Optional[str]:
-    """Search for the address corresponding to a latitude and longitude
+    """Search for the address corresponding to a latitude and longitude.
 
     Args:
         latitude:       Latitude to search
@@ -118,7 +114,7 @@ def search_lat_lon(
         headers={"X-RapidAPI-Host": "trueway-geocoding.p.rapidapi.com"},
     )
     try:
-        return cast(str, rapid_api_response["results"][0]["address"])
+        return cast("str", rapid_api_response["results"][0]["address"])
     except (KeyError, IndexError):
         return None
 
@@ -161,7 +157,7 @@ def search_location_around_lat_lon(
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
 ) -> list[dict[str, Any]]:
-    """Search for a location around a latitude and longitude
+    """Search for a location around a latitude and longitude.
 
     location is a surface form query defining the location. This can be a business name like McDonald's,
     a point of interest like restaurant, a city / state,
@@ -188,9 +184,7 @@ def search_location_around_lat_lon(
     Raises:
         ValueError      If 1 and only 1 of latitude and longitude is not provided
     """
-    latitude, longitude = maybe_get_current_lat_lon(
-        latitude=latitude, longitude=longitude
-    )
+    latitude, longitude = maybe_get_current_lat_lon(latitude=latitude, longitude=longitude)
     validate_latitude(latitude, "latitude", Optional[float])
     validate_longitude(longitude, "longitude", Optional[float])
     rapid_api_response = rapid_api_get_request(
@@ -217,9 +211,10 @@ def search_location_around_lat_lon(
                 "photos",
             ]:
                 result.pop(unnecessary_key, None)
-        return results
     except KeyError:
         pass
+    else:
+        return results
     return []
 
 
@@ -230,7 +225,7 @@ def search_weather_around_lat_lon(
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
 ) -> Optional[dict[str, Any]]:
-    """Search for weather information around a latitude and longitude, right now or sometime in the future
+    """Search for weather information around a latitude and longitude, right now or sometime in the future.
 
     Search results contains weather forcast various optional information, including but not limited to
         - condition: RAIN / CLOUDY ...
@@ -253,9 +248,7 @@ def search_weather_around_lat_lon(
     """
     validate_latitude(latitude, "latitude", Optional[float])
     validate_longitude(longitude, "longitude", Optional[float])
-    latitude, longitude = maybe_get_current_lat_lon(
-        latitude=latitude, longitude=longitude
-    )
+    latitude, longitude = maybe_get_current_lat_lon(latitude=latitude, longitude=longitude)
     if days < 0 or not isinstance(days, int):
         raise ValueError(f"Days must be positive integer, found {days=}.")
     rapid_api_response = rapid_api_get_request(
@@ -285,9 +278,10 @@ def search_weather_around_lat_lon(
             value: Any = flattened_forecast.pop(key, NOT_GIVEN)
             if new_key is not None and value is not NOT_GIVEN:
                 flattened_forecast[new_key] = value
-        return flattened_forecast
     except (KeyError, IndexError):
         pass
+    else:
+        return flattened_forecast
     return None
 
 
@@ -325,19 +319,18 @@ def search_stock(query: str) -> Optional[dict[str, Union[str, float]]]:
         stock_info: dict[str, Any] = rapid_api_response["data"]["stock"][0]
         # Remove exchange from symbol
         stock_info["symbol"] = stock_info["symbol"].split(":")[0]
-        return stock_info
     except (KeyError, IndexError):
         return None
+    else:
+        return stock_info
 
 
 # Note: This tool only accepts canonical form. This pairs nicely with tools that accepts surface form, e.g.
 # `unit_conversion` to test model behavior in both cases
 @register_as_tool(visible_to=(RoleType.AGENT,))
 @typechecked
-def convert_currency(
-    amount: Union[float, int], from_currency_code: str, to_currency_code: str
-) -> float:
-    """Converts currency amount from a one currency to another given on their ISO 4217 currency code
+def convert_currency(amount: float, from_currency_code: str, to_currency_code: str) -> float:
+    """Converts currency amount from a one currency to another given on their ISO 4217 currency code.
 
     Args:
         amount:             Amount of currency to convert
@@ -360,5 +353,5 @@ def convert_currency(
     )
     try:
         return float(rapid_api_response["result"]["convertedAmount"])
-    except KeyError:
-        raise RuntimeError("Conversion failed")
+    except KeyError as err:
+        raise RuntimeError("Conversion failed") from err

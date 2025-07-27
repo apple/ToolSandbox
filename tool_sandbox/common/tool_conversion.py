@@ -1,7 +1,6 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Taken from https://github.com/langchain-ai/langchain/blob/
-90184255f880a26cbdffd7b764deae9be3242ece/libs/core/langchain_core/utils/function_calling.py#L276
+"""Taken from https://github.com/langchain-ai/langchain/blob/90184255f880a26cbdffd7b764deae9be3242ece/libs/core/langchain_core/utils/function_calling.py#L276.
 
 Modified to allow for tool augmentations
 """
@@ -35,8 +34,8 @@ def default_parameter_processing(
     params: list[inspect.Parameter],
 ) -> list[inspect.Parameter]:
     """Modify the function arg spec of tool to a format more friendly for convert_to_openai_tool.
-    In specific
 
+    In specific
     1. Remove Optional
     2. Remove NotGiven from Union types
 
@@ -82,7 +81,7 @@ def maybe_scramble_arg_type(
     params: list[inspect.Parameter],
     tool_augmentation_list: list[TOOL_AUGMENTATION_TYPE],
 ) -> list[inspect.Parameter]:
-    """Modify the function arg spec of tool by removing arg types
+    """Modify the function arg spec of tool by removing arg types.
 
     Args:
         params:                   params to be processed
@@ -92,16 +91,13 @@ def maybe_scramble_arg_type(
         Modified tool params
     """
     scramble = ScenarioCategories.ARG_TYPE_SCRAMBLED in tool_augmentation_list
-    return [
-        parameter.replace(annotation=type(None)) if scramble else parameter
-        for parameter in params
-    ]
+    return [parameter.replace(annotation=type(None)) if scramble else parameter for parameter in params]
 
 
 def maybe_scramble_arg_type_from_context(
     params: list[inspect.Parameter],
 ) -> list[inspect.Parameter]:
-    """Modify the function arg spec of tool by removing arg types
+    """Modify the function arg spec of tool by removing arg types.
 
     Args:
         params: params to be processed
@@ -115,10 +111,8 @@ def maybe_scramble_arg_type_from_context(
     )
 
 
-def maybe_scramble_tool_description(
-    docstring: str, tool_augmentation_list: list[TOOL_AUGMENTATION_TYPE]
-) -> str:
-    """Modify the docstring tool by removing its description in docstring
+def maybe_scramble_tool_description(docstring: str, tool_augmentation_list: list[TOOL_AUGMENTATION_TYPE]) -> str:
+    """Modify the docstring tool by removing its description in docstring.
 
     Args:
         docstring:                  Docstring to be processed
@@ -127,11 +121,7 @@ def maybe_scramble_tool_description(
     Returns:
         Modified docstring
     """
-
-    if (
-        ScenarioCategories.TOOL_DESCRIPTION_SCRAMBLED in tool_augmentation_list
-        and docstring
-    ):
+    if ScenarioCategories.TOOL_DESCRIPTION_SCRAMBLED in tool_augmentation_list and docstring:
         # Find description and replace with empty string, using this function's docstring as an example, this will
         # produce:
 
@@ -146,7 +136,7 @@ def maybe_scramble_tool_description(
 
 
 def maybe_scramble_tool_description_from_context(docstring: str) -> str:
-    """Modify the docstring tool by removing its description in docstring
+    """Modify the docstring tool by removing its description in docstring.
 
     Args:
         docstring:  Docstring to be processed
@@ -160,10 +150,8 @@ def maybe_scramble_tool_description_from_context(docstring: str) -> str:
     )
 
 
-def maybe_scramble_arg_description(
-    docstring: str, tool_augmentation_list: list[TOOL_AUGMENTATION_TYPE]
-) -> str:
-    """Modify the docstring tool by removing its argument descriptions in docstring
+def maybe_scramble_arg_description(docstring: str, tool_augmentation_list: list[TOOL_AUGMENTATION_TYPE]) -> str:
+    """Modify the docstring tool by removing its argument descriptions in docstring.
 
     Args:
         docstring:                  Docstring to be processed
@@ -173,7 +161,7 @@ def maybe_scramble_arg_description(
     Returns:
         Modified docstring
     """
-    if ScenarioCategories.ARG_DESCRIPTION_SCRAMBLED in tool_augmentation_list:
+    if ScenarioCategories.ARG_DESCRIPTION_SCRAMBLED in tool_augmentation_list:  # noqa: SIM102
         if docstring:
             # Find description and replace with empty string, using this function's docstring as an example, this will
             # produce:
@@ -185,14 +173,12 @@ def maybe_scramble_arg_description(
             # Returns:
             #      Modified docstring
 
-            docstring = re.sub(
-                r"(?<=Args:\n)(.*?)(?=\nReturns)", "", docstring, flags=re.DOTALL
-            )
+            docstring = re.sub(r"(?<=Args:\n)(.*?)(?=\nReturns)", "", docstring, flags=re.DOTALL)
     return docstring
 
 
 def maybe_scramble_arg_description_from_context(docstring: str) -> str:
-    """Modify the docstring tool by removing its argument descriptions in docstring
+    """Modify the docstring tool by removing its argument descriptions in docstring.
 
     Args:
         docstring:  Docstring to be processed
@@ -207,7 +193,7 @@ def maybe_scramble_arg_description_from_context(docstring: str) -> str:
 
 
 def augmented_getdoc(tool: Callable[..., Any]) -> Optional[str]:
-    """Extract doc string from tool with tool augmentation
+    """Extract doc string from tool with tool augmentation.
 
     Args:
         tool:   Tool to extract docstring from
@@ -224,7 +210,7 @@ def augmented_getdoc(tool: Callable[..., Any]) -> Optional[str]:
 
 
 def augmented_parameters(tool: Callable[..., Any]) -> list[inspect.Parameter]:
-    """Extract parameters from tool with tool augmentation
+    """Extract parameters from tool with tool augmentation.
 
     Args:
         tool:   Tool to extract parameters from
@@ -291,9 +277,7 @@ def _parse_python_function_docstring(
     return description, arg_descriptions
 
 
-def _get_python_function_arguments(
-    function: Callable[..., Any], arg_descriptions: dict[str, str]
-) -> dict[str, Any]:
+def _get_python_function_arguments(function: Callable[..., Any], arg_descriptions: dict[str, str]) -> dict[str, Any]:
     """Get JsonSchema describing a Python functions arguments.
 
     Assumes all function arguments are of primitive types (int, float, str, bool) or
@@ -310,15 +294,9 @@ def _get_python_function_arguments(
             # Mypy error:
             # "type" has no attribute "schema"
             properties[arg] = arg_type.schema()
-        elif (
-            hasattr(arg_type, "__name__")
-            and getattr(arg_type, "__name__") in PYTHON_TO_JSON_TYPES
-        ):
+        elif hasattr(arg_type, "__name__") and arg_type.__name__ in PYTHON_TO_JSON_TYPES:
             properties[arg] = {"type": PYTHON_TO_JSON_TYPES[arg_type.__name__]}
-        elif (
-            hasattr(arg_type, "__dict__")
-            and getattr(arg_type, "__dict__").get("__origin__", None) == Literal
-        ):
+        elif hasattr(arg_type, "__dict__") and arg_type.__dict__.get("__origin__", None) == Literal:
             properties[arg] = {
                 "enum": list(arg_type.__args__),
                 "type": PYTHON_TO_JSON_TYPES[arg_type.__args__[0].__class__.__name__],
@@ -402,4 +380,12 @@ def convert_to_openai_tool(
 def convert_to_openai_tools(
     name_to_tool: dict[str, Callable[..., Any]],
 ) -> list[dict[str, Any]]:
+    """Convert a dictionary of tool names to tools to a list of OpenAI tools.
+
+    Args:
+        name_to_tool: A dictionary of tool names to tools.
+
+    Returns:
+        A list of OpenAI tools.
+    """
     return [convert_to_openai_tool(tool, name) for name, tool in name_to_tool.items()]

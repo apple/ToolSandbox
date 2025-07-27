@@ -25,7 +25,7 @@ from tool_sandbox.tools.setting import get_wifi_status
 @register_as_tool(visible_to=(RoleType.AGENT,))
 @typechecked
 def get_current_timestamp() -> float:
-    """Get current POSIX timestamp
+    """Get current POSIX timestamp.
 
     Returns:
         Float value POSIX timestamp
@@ -37,12 +37,8 @@ def get_current_timestamp() -> float:
 @typechecked
 def timestamp_to_datetime_info(
     timestamp: float,
-) -> Dict[
-    Literal["year", "month", "day", "hour", "minute", "second", "isoweekday"], int
-]:
-    """Convert POSIX timestamp to a dictionary of date time information, including
-        ["year", "month", "day", "hour", "minute", "second", "isoweekday"]
-        isoweekday ranges from [1, 7]
+) -> Dict[Literal["year", "month", "day", "hour", "minute", "second", "isoweekday"], int]:
+    """Convert POSIX timestamp to a dictionary of date time information, including ["year", "month", "day", "hour", "minute", "second", "isoweekday"] isoweekday ranges from [1, 7].
 
     Args:
         timestamp:  Float representing POSIX timestamp
@@ -74,7 +70,7 @@ def datetime_info_to_timestamp(
     minute: int,
     second: int,
 ) -> float:
-    """Convert  date time information to POSIX timestamp
+    """Convert  date time information to POSIX timestamp.
 
     Args:
         year:       Year of timestamp
@@ -87,9 +83,7 @@ def datetime_info_to_timestamp(
     Returns:
         POSIX timestamp
     """
-    return datetime.datetime(
-        year=year, month=month, day=day, hour=hour, minute=minute, second=second
-    ).timestamp()
+    return datetime.datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second).timestamp()
 
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
@@ -130,8 +124,7 @@ def timestamp_diff(
     timestamp_0: float,
     timestamp_1: float,
 ) -> Dict[Literal["days", "seconds"], int]:
-    """Calculates the difference between two timestamps, timestamp_1 - timestamp_0, return the difference
-    represented in days and seconds
+    """Calculates the difference between two timestamps, timestamp_1 - timestamp_0, return the difference represented in days and seconds.
 
     Args:
         timestamp_0:    Timestamp to subtract
@@ -144,9 +137,7 @@ def timestamp_diff(
     validate_timestamp(timestamp_0, "timestamp_0", float)
     validate_timestamp(timestamp_1, "timestamp_1", float)
 
-    time_delta = datetime.datetime.fromtimestamp(
-        timestamp_1
-    ) - datetime.datetime.fromtimestamp(timestamp_0)
+    time_delta = datetime.datetime.fromtimestamp(timestamp_1) - datetime.datetime.fromtimestamp(timestamp_0)
     return {"days": time_delta.days, "seconds": time_delta.seconds}
 
 
@@ -155,7 +146,7 @@ def timestamp_diff(
 def seconds_to_hours_minutes_seconds(
     seconds: float,
 ) -> Dict[Literal["hour", "minute", "second"], int]:
-    """Convert total number of seconds past 0:00 into hours, minutes and seconds
+    """Convert total number of seconds past 0:00 into hours, minutes and seconds.
 
     Args:
         seconds:    Number of seconds past 0:00
@@ -174,7 +165,7 @@ def seconds_to_hours_minutes_seconds(
 @register_as_tool(visible_to=(RoleType.AGENT,))
 @typechecked
 def unit_conversion(amount: float, from_unit: str, to_unit: str) -> float:
-    """Convert a certain amount from one unit to another
+    """Convert a certain amount from one unit to another.
 
     You can use common english names to represent the from and to units
 
@@ -192,19 +183,17 @@ def unit_conversion(amount: float, from_unit: str, to_unit: str) -> float:
     """
     # Perform slight normalization
     try:
-        return cast(float, pint.Quantity(amount, from_unit).to(to_unit).magnitude)
+        return cast("float", pint.Quantity(amount, from_unit).to(to_unit).magnitude)
     except UndefinedUnitError:
         return cast(
-            float,
+            "float",
             pint.Quantity(amount, from_unit.lower()).to(to_unit.lower()).magnitude,
         )
 
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 @typechecked
-def calculate_lat_lon_distance(
-    latitude_0: float, longitude_0: float, latitude_1: float, longitude_1: float
-) -> float:
+def calculate_lat_lon_distance(latitude_0: float, longitude_0: float, latitude_1: float, longitude_1: float) -> float:
     """Calculate the distance between 2 pairs of latitude and longitude.
 
     Args:
@@ -222,10 +211,8 @@ def calculate_lat_lon_distance(
     validate_longitude(longitude_0, name="longitude_0", expected_type=float)
     validate_longitude(longitude_1, name="longitude_1", expected_type=float)
     return cast(
-        float,
-        geopy.distance.distance(
-            (latitude_0, longitude_0), (latitude_1, longitude_1)
-        ).kilometers,
+        "float",
+        geopy.distance.distance((latitude_0, longitude_0), (latitude_1, longitude_1)).kilometers,
     )
 
 
@@ -254,28 +241,22 @@ def search_holiday(
         year = datetime.datetime.now().year
     # Sort holidays by decreasing name partial match score against database.
     # Apply string normalization with default_process
-    holiday_matches: list[tuple[float, datetime.date, str]] = list(
-        sorted(
+    holiday_matches: list[tuple[float, datetime.date, str]] = sorted(
+        (
             (
-                (
-                    fuzz.partial_ratio(
-                        holiday_name,
-                        name,
-                        processor=utils.default_process,
-                    ),
-                    date,
+                fuzz.partial_ratio(
+                    holiday_name,
                     name,
-                )
-                for date, name in holidays.country_holidays(
-                    country="US", years=year
-                ).items()
-            ),
-            reverse=True,
-        )
+                    processor=utils.default_process,
+                ),
+                date,
+                name,
+            )
+            for date, name in holidays.country_holidays(country="US", years=year).items()
+        ),
+        reverse=True,
     )
     # Threshold at 90 for top match
     if holiday_matches and holiday_matches[0][0] > 90:
-        return datetime.datetime.combine(
-            holiday_matches[0][1], datetime.datetime.min.time()
-        ).timestamp()
+        return datetime.datetime.combine(holiday_matches[0][1], datetime.datetime.min.time()).timestamp()
     return None

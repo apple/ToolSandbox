@@ -20,7 +20,7 @@ from tool_sandbox.scenarios.user_simulator_few_shot_examples import (
 
 
 def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scenario]:
-    """Define the base scenario containing boilerplate info other scenarios could expand upon
+    """Define the base scenario containing boilerplate info other scenarios could expand upon.
 
     Note that this scenario does not contain Evaluation, and is in complete.
 
@@ -30,7 +30,7 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
     Returns:
         A Dict containing scenario name and scenario
     """
-    scenarios: Dict[str, Scenario] = dict()
+    scenarios: Dict[str, Scenario] = {}
     # Find all available tools and form an import. Key is function name, value is function callable object
     tools: Dict[str, Callable[..., Any]] = find_tools_by_module(
         tool_sandbox.tools, preferred_tool_backend=preferred_tool_backend
@@ -67,9 +67,7 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
                 "content": "Don't make assumptions about what values to plug into functions. "
                 "Ask for clarification if a user request is ambiguous.",
             },
-            *user_simulator_few_shot_examples[
-                "send_message_with_contact_content_cellular_off_multiple_user_turn"
-            ],
+            *user_simulator_few_shot_examples["send_message_with_contact_content_cellular_off_multiple_user_turn"],
         ],
     )
     # Add starting database entries
@@ -117,8 +115,7 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
                 "recipient_phone_number": "+11233344455",
                 "content": "Hey kid, you want some GPU?",
                 "creation_timestamp": (
-                    datetime.datetime.now()
-                    - datetime.timedelta(days=3, hours=4, minutes=5, seconds=6)
+                    datetime.datetime.now() - datetime.timedelta(days=3, hours=4, minutes=5, seconds=6)
                 ).timestamp(),
             },
             {
@@ -129,8 +126,7 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
                 "recipient_phone_number": "+18307976530",
                 "content": "No leave me alone",
                 "creation_timestamp": (
-                    datetime.datetime.now()
-                    - datetime.timedelta(days=3, hours=3, minutes=5, seconds=6)
+                    datetime.datetime.now() - datetime.timedelta(days=3, hours=3, minutes=5, seconds=6)
                 ).timestamp(),
             },
             {
@@ -141,8 +137,7 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
                 "recipient_phone_number": "+11233344455",
                 "content": "How's it going",
                 "creation_timestamp": (
-                    datetime.datetime.now()
-                    - datetime.timedelta(hours=1, minutes=3, seconds=3)
+                    datetime.datetime.now() - datetime.timedelta(hours=1, minutes=3, seconds=3)
                 ).timestamp(),
             },
             {
@@ -153,8 +148,7 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
                 "recipient_phone_number": "+10000000000",
                 "content": "Things are proceeding as expected",
                 "creation_timestamp": (
-                    datetime.datetime.now()
-                    - datetime.timedelta(hours=1, minutes=2, seconds=3)
+                    datetime.datetime.now() - datetime.timedelta(hours=1, minutes=2, seconds=3)
                 ).timestamp(),
             },
             {
@@ -164,9 +158,7 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
                 "recipient_person_id": deterministic_uuid(payload="Tomas Haake"),
                 "recipient_phone_number": "+11233344455",
                 "content": "Good, keep me posted",
-                "creation_timestamp": (
-                    datetime.datetime.now() - datetime.timedelta(minutes=1, seconds=2)
-                ).timestamp(),
+                "creation_timestamp": (datetime.datetime.now() - datetime.timedelta(minutes=1, seconds=2)).timestamp(),
             },
         ],
     )
@@ -176,36 +168,24 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
             {
                 "reminder_id": deterministic_uuid(payload="reminder_0"),
                 "content": "Look for Company SF tickets",
-                "creation_timestamp": (
-                    datetime.datetime.now() - datetime.timedelta(days=3)
-                ).timestamp(),
-                "reminder_timestamp": (
-                    datetime.datetime.now() - datetime.timedelta(days=1)
-                ).timestamp(),
+                "creation_timestamp": (datetime.datetime.now() - datetime.timedelta(days=3)).timestamp(),
+                "reminder_timestamp": (datetime.datetime.now() - datetime.timedelta(days=1)).timestamp(),
                 "latitude": None,
                 "longitude": None,
             },
             {
                 "reminder_id": deterministic_uuid(payload="reminder_1"),
                 "content": "Buy tickets for Merrily next week",
-                "creation_timestamp": (
-                    datetime.datetime.now() - datetime.timedelta(days=1)
-                ).timestamp(),
-                "reminder_timestamp": (
-                    datetime.datetime.now() - datetime.timedelta(minutes=1)
-                ).timestamp(),
+                "creation_timestamp": (datetime.datetime.now() - datetime.timedelta(days=1)).timestamp(),
+                "reminder_timestamp": (datetime.datetime.now() - datetime.timedelta(minutes=1)).timestamp(),
                 "latitude": None,
                 "longitude": None,
             },
             {
                 "reminder_id": deterministic_uuid(payload="reminder_2"),
                 "content": "Buy a nice rich navy bathing dress",
-                "creation_timestamp": (
-                    datetime.datetime.now() - datetime.timedelta(hours=1)
-                ).timestamp(),
-                "reminder_timestamp": (
-                    datetime.datetime.now() + datetime.timedelta(hours=1)
-                ).timestamp(),
+                "creation_timestamp": (datetime.datetime.now() - datetime.timedelta(hours=1)).timestamp(),
+                "reminder_timestamp": (datetime.datetime.now() + datetime.timedelta(hours=1)).timestamp(),
                 "latitude": 37.3237926356735,
                 "longitude": -122.03961770355414,
             },
@@ -219,34 +199,23 @@ def named_base_scenarios(preferred_tool_backend: ToolBackend) -> Dict[str, Scena
     # Remember that when low_battery_mode is on, all other services must be off
     base_scenario_name = "base"
     for flipped_columns in [
-        x
-        for i in range(1, 4)
-        for x in itertools.combinations(("wifi", "location_service", "cellular"), i)
+        x for i in range(1, 4) for x in itertools.combinations(("wifi", "location_service", "cellular"), i)
     ] + [("low_battery_mode", "wifi", "location_service", "cellular")]:
         scenario = copy.deepcopy(scenarios[base_scenario_name])
 
         scenario.starting_context.update_database(
             namespace=DatabaseNamespace.SETTING,
-            dataframe=scenario.starting_context.get_database(
-                namespace=DatabaseNamespace.SETTING
-            ).with_columns(
+            dataframe=scenario.starting_context.get_database(namespace=DatabaseNamespace.SETTING).with_columns(
                 [~pl.col(column).alias(column) for column in flipped_columns]
             ),
         )
-        setting_database = scenario.starting_context.get_database(
-            namespace=DatabaseNamespace.SETTING
-        )
+        setting_database = scenario.starting_context.get_database(namespace=DatabaseNamespace.SETTING)
         # Figure out a name for this scenario.
         # Should look something like base_low_battery_mode_on_wifi_off_location_service_off_cellular_off
         scenario_name = (
             base_scenario_name
             + "_"
-            + "_".join(
-                [
-                    f"{column}_{('off', 'on')[int(setting_database[column][0])]}"
-                    for column in flipped_columns
-                ]
-            )
+            + "_".join([f"{column}_{('off', 'on')[int(setting_database[column][0])]}" for column in flipped_columns])
         )
         scenarios[scenario_name] = scenario
     return scenarios

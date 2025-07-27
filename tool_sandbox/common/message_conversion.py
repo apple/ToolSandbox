@@ -25,7 +25,7 @@ from tool_sandbox.common.utils import attrs_serialize
 
 @define(frozen=True)
 class Message:
-    """Messages each role reads and writes"""
+    """Messages each role reads and writes."""
 
     sender: RoleType = field(converter=RoleType)
     recipient: RoleType = field(converter=RoleType)
@@ -42,7 +42,7 @@ class Message:
     visible_to: Optional[list[RoleType]] = None
 
     def __attrs_post_init__(self) -> None:
-        # Bypass frozen. See https://github.com/python-attrs/attrs/issues/120.
+        """Bypass frozen. See https://github.com/python-attrs/attrs/issues/120."""
         # Assign default visibility
         if self.visible_to is None:
             object.__setattr__(self, "visible_to", [self.sender, self.recipient])
@@ -53,7 +53,7 @@ def openai_tool_call_to_python_code(
     available_tool_names: set[str],
     execution_facing_tool_name: Optional[str],
 ) -> str:
-    """Converts OpenAI ChatCompletionMessageToolCall to python code
+    """Converts OpenAI ChatCompletionMessageToolCall to python code.
 
     Args:
         tool_call:                   ChatCompletionMessageToolCall object
@@ -79,11 +79,7 @@ def openai_tool_call_to_python_code(
         raise KeyError(
             f"Agent tool call {agent_facing_tool_name=} is not a known allowed tool. Options are {available_tool_names=}"
         )
-    function_name = (
-        agent_facing_tool_name
-        if execution_facing_tool_name is None
-        else execution_facing_tool_name
-    )
+    function_name = agent_facing_tool_name if execution_facing_tool_name is None else execution_facing_tool_name
     function_call_code = (
         f"{tool_id}_parameters = {json.loads(tool_call.function.arguments)}\n"
         f"{tool_id}_response = {function_name}(**{tool_id}_parameters)\n"
@@ -119,11 +115,7 @@ def python_code_to_openai_tool_call(
     pattern = r"^(?P<tool_id>.+)_parameters = (?P<arguments>[^\n]+)\n(?P=tool_id)_response = (?P<name>[^\(]+)"
     match = re.match(pattern=pattern, string=python_code)
     assert match is not None
-    function_name = (
-        match.group("name")
-        if agent_facing_tool_name is None
-        else agent_facing_tool_name
-    )
+    function_name = match.group("name") if agent_facing_tool_name is None else agent_facing_tool_name
     return ChatCompletionMessageToolCall(
         id=match.group("tool_id"),
         type="function",
@@ -145,7 +137,7 @@ def to_openai_messages(
     ],
     list[list[int]],
 ]:
-    """Converts a list of Tool Sandbox messages to OpenAI API messages
+    """Converts a list of Tool Sandbox messages to OpenAI API messages.
 
     Multiple sandbox messages could be compressed into a single OpenAI API message. Because of this,
     we return a mapping between the indices of these two in addition. This is useful for serialization
@@ -171,10 +163,7 @@ def to_openai_messages(
             openai_messages.append({"role": "system", "content": message.content})
         elif message.sender == RoleType.USER and message.recipient == RoleType.AGENT:
             openai_messages.append({"role": "user", "content": message.content})
-        elif (
-            message.sender == RoleType.EXECUTION_ENVIRONMENT
-            and message.recipient == RoleType.AGENT
-        ):
+        elif message.sender == RoleType.EXECUTION_ENVIRONMENT and message.recipient == RoleType.AGENT:
             assert message.openai_tool_call_id is not None
             assert message.openai_function_name is not None
             openai_messages.append(
@@ -185,31 +174,24 @@ def to_openai_messages(
                     "content": message.content,
                 }
             )
-        elif (
-            message.sender == RoleType.AGENT
-            and message.recipient == RoleType.EXECUTION_ENVIRONMENT
-        ):
+        elif message.sender == RoleType.AGENT and message.recipient == RoleType.EXECUTION_ENVIRONMENT:
             # Aggregate multiple function calls
             if "tool_calls" not in openai_messages[-1]:
                 # Create a new message with empty tool call
                 # Note: We do not use `"content": None` since that breaks assumptions in
                 # the Cohere tokenizer. More specifically, the prompt generation using
                 # templates fails because `None` is not a string.
-                openai_messages.append(
-                    {"role": "assistant", "content": "", "tool_calls": []}
-                )
+                openai_messages.append({"role": "assistant", "content": "", "tool_calls": []})
             # Add tool call
             openai_messages[-1]["tool_calls"].append(
-                python_code_to_openai_tool_call(
-                    message.content, message.openai_function_name
-                ).model_dump(mode="dict", exclude_unset=True)
+                python_code_to_openai_tool_call(message.content, message.openai_function_name).model_dump(
+                    mode="dict", exclude_unset=True
+                )
             )
         elif message.sender == RoleType.AGENT and message.recipient == RoleType.USER:
             openai_messages.append({"role": "assistant", "content": message.content})
         else:
-            raise ValueError(
-                f"Unrecognized sender recipient pair {(message.sender, message.recipient)}"
-            )
+            raise ValueError(f"Unrecognized sender recipient pair {(message.sender, message.recipient)}")
         # Process mapping
         if (
             message.sender == RoleType.AGENT
@@ -227,7 +209,7 @@ def to_openai_messages(
 def openai_messages_to_langchain_messages(
     openai_messages: list[dict[str, Any]],
 ) -> list[BaseMessage]:
-    """Convert OpenAI dict messages to langchain strongly typed messages
+    """Convert OpenAI dict messages to langchain strongly typed messages.
 
     Args:
         openai_messages:    OpenAI messages to convert
@@ -247,9 +229,7 @@ def openai_messages_to_langchain_messages(
             # version is pinned to version 0.1.3, which does not have it yet.
             langchain_messages.append(
                 AIMessage(  # type: ignore[call-arg]
-                    content=message.get("content", "")
-                    if message.get("content", "") is not None
-                    else "",
+                    content=message.get("content", "") if message.get("content", "") is not None else "",
                     tool_calls=tool_calls,
                 )
             )
@@ -273,16 +253,15 @@ def get_snapshot_indices_to_databases(
         execution_context:  The execution context containing databases.
 
     Returns:
-
+        A mapping of snapshot index -> database update that happened at said index.
     """
-    snapshot_indices_to_databases: dict[int, dict[str, pl.DataFrame]] = defaultdict(
-        dict
-    )
+    snapshot_indices_to_databases: dict[int, dict[str, pl.DataFrame]] = defaultdict(dict)
     for namespace in set(DatabaseNamespace) - {DatabaseNamespace.SANDBOX}:
         # Find indices where a new snapshot was created, add to the mapping
         update_indices = (
             execution_context.get_database(
-                namespace=cast(DatabaseNamespace, namespace),
+                # ? There was a cast here to DatabaseNamespace. Mypy marked it as redundant.
+                namespace=namespace,
                 get_all_history_snapshots=True,
                 drop_sandbox_message_index=False,
                 drop_headguard=False,
@@ -292,17 +271,16 @@ def get_snapshot_indices_to_databases(
             .to_list()
         )
         for update_index in update_indices:
-            snapshot_indices_to_databases[update_index][namespace] = (
-                execution_context.get_database(
-                    namespace=cast(DatabaseNamespace, namespace),
-                    sandbox_message_index=update_index,
-                )
+            snapshot_indices_to_databases[update_index][namespace] = execution_context.get_database(
+                # ? There was a cast here to DatabaseNamespace. Mypy marked it as redundant.
+                namespace=namespace,
+                sandbox_message_index=update_index,
             )
 
     return snapshot_indices_to_databases
 
 
-def serialize_to_conversation(
+def serialize_to_conversation(  # noqa: C901
     execution_context: ExecutionContext,
     evaluation_result: EvaluationResult,
     milestones: list[Milestone],
@@ -332,25 +310,17 @@ def serialize_to_conversation(
         get_all_history_snapshots=True,
     ).filter(
         ((pl.col("sender") == RoleType.AGENT) | (pl.col("recipient") == RoleType.AGENT))
-        & (
-            (pl.col("visible_to") != [RoleType.USER])
-            | (pl.col("visible_to").is_null())
-        )
+        & ((pl.col("visible_to") != [RoleType.USER]) | (pl.col("visible_to").is_null()))
     )
     subset_to_snapshot_indices_mapping: list[int] = cast(
-        list[int], message_subset_database["sandbox_message_index"].to_list()
+        "list[int]", message_subset_database["sandbox_message_index"].to_list()
     )
-    message_subset = [
-        Message(**row)
-        for row in message_subset_database.drop("sandbox_message_index").to_dicts()
-    ]
+    message_subset = [Message(**row) for row in message_subset_database.drop("sandbox_message_index").to_dicts()]
     # Convert SANDBOX database to OpenAI API messages
-    openai_messages, openai_messages_to_subset_indices_mapping = to_openai_messages(
-        messages=message_subset
-    )
+    openai_messages, openai_messages_to_subset_indices_mapping = to_openai_messages(messages=message_subset)
     # Create a mapping of snapshot index -> database update that happened at said index
-    snapshot_indices_to_databases: dict[int, dict[str, pl.DataFrame]] = (
-        get_snapshot_indices_to_databases(execution_context)
+    snapshot_indices_to_databases: dict[int, dict[str, pl.DataFrame]] = get_snapshot_indices_to_databases(
+        execution_context
     )
     # Create a mapping of snapshot index -> matching milestone
     snapshot_indices_to_milestones: dict[int, list[dict[str, Any]]] = defaultdict(list)
@@ -392,38 +362,28 @@ def serialize_to_conversation(
     ]
     turns: list[dict[str, Any]] = []
     for openai_message, snapshot_indices in zip(
-        openai_messages, openai_messages_to_snapshot_indices_mapping
+        openai_messages, openai_messages_to_snapshot_indices_mapping, strict=False
     ):
         # Add message
-        turns.append(cast(dict[str, Any], openai_message))
+        turns.append(cast("dict[str, Any]", openai_message))
 
         current_extras_key = f"{openai_message['role']}_details"
         for snapshot_index in snapshot_indices:
             # Try to add db update
             if snapshot_index in snapshot_indices_to_databases:
-                for database_name, database in snapshot_indices_to_databases[
-                    snapshot_index
-                ].items():
+                for database_name, database in snapshot_indices_to_databases[snapshot_index].items():
                     if current_extras_key not in turns[-1]:
-                        turns[-1][current_extras_key] = defaultdict(
-                            lambda: defaultdict()
-                        )
-                    turns[-1][current_extras_key]["database_update"][database_name] = (
-                        database.to_dicts()
-                    )
+                        turns[-1][current_extras_key] = defaultdict(lambda: defaultdict())
+                    turns[-1][current_extras_key]["database_update"][database_name] = database.to_dicts()
             # Try to add milestone mapping
             if snapshot_index in snapshot_indices_to_milestones:
                 if current_extras_key not in turns[-1]:
                     turns[-1][current_extras_key] = defaultdict()
-                turns[-1][current_extras_key]["milestone_matches"] = (
-                    snapshot_indices_to_milestones[snapshot_index]
-                )
+                turns[-1][current_extras_key]["milestone_matches"] = snapshot_indices_to_milestones[snapshot_index]
             # Try to add minefield mapping
             if snapshot_index in snapshot_indices_to_minefields:
                 if current_extras_key not in turns[-1]:
                     turns[-1][current_extras_key] = defaultdict()
-                turns[-1][current_extras_key]["minefield_matches"] = (
-                    snapshot_indices_to_minefields[snapshot_index]
-                )
+                turns[-1][current_extras_key]["minefield_matches"] = snapshot_indices_to_minefields[snapshot_index]
 
     return turns

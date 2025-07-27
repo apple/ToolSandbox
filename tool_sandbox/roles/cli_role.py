@@ -16,6 +16,8 @@ LOGGER = getLogger(__name__)
 
 @dataclass
 class InteractiveMessage:
+    """Interactive message."""
+
     content: Optional[str] = None
     tool_call: Optional[str] = None
 
@@ -27,10 +29,11 @@ class CliRole(BaseRole):
     model_name: str
 
     def __init__(self) -> None:
+        """Initialize the CLI role."""
         print(f"Interactive role '{self.role_type}'.")
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
 
         Args:
             ending_index:   Optional index. Will respond to message located at ending_index instead of most recent one
@@ -63,9 +66,7 @@ class CliRole(BaseRole):
         if response.tool_call is None:
             # Message contains no tool call, aka addressed to agent
             assert response.content is not None
-            recipient_role = (
-                RoleType.AGENT if self.role_type == RoleType.USER else RoleType.USER
-            )
+            recipient_role = RoleType.AGENT if self.role_type == RoleType.USER else RoleType.USER
             response_messages = [
                 Message(
                     sender=self.role_type,
@@ -79,9 +80,7 @@ class CliRole(BaseRole):
                 Message(
                     sender=self.role_type,
                     recipient=RoleType.EXECUTION_ENVIRONMENT,
-                    content=self.user_tool_call_to_python_code(
-                        response.tool_call, available_tool_names
-                    ),
+                    content=self.user_tool_call_to_python_code(response.tool_call, available_tool_names),
                 )
             ]
         self.add_messages(response_messages)
@@ -99,27 +98,26 @@ class CliRole(BaseRole):
         if text != "tool":
             return InteractiveMessage(content=text)
         # Tool call, show available options.
-        tool_names_sigs = [
-            (f.__name__, inspect.signature(f))
-            for f in self.get_available_tools().values()
-        ]
+        tool_names_sigs = [(f.__name__, inspect.signature(f)) for f in self.get_available_tools().values()]
         tools_fmtd = "\n".join([f" - {name}{sig}" for name, sig in tool_names_sigs])
         print(f"Tool options: \n {tools_fmtd}.")
         tool_name = input(f" [{self.role_type}] Tool function call > ")
         return InteractiveMessage(tool_call=tool_name)
 
-    def user_tool_call_to_python_code(
-        self, tool_call: str, available_tool_names: set[str]
-    ) -> str:
+    def user_tool_call_to_python_code(self, tool_call: str, available_tool_names: set[str]) -> str:
         """Convert a tool call into an execution environment command."""
         return f"print(repr({tool_call}))"
 
 
 class CliUser(CliRole):
+    """CLI user role."""
+
     role_type: RoleType = RoleType.USER
     model_name = "cli_user"
 
 
 class CliAgent(CliRole):
+    """CLI agent role."""
+
     role_type: RoleType = RoleType.AGENT
     model_name = "cli_agent"

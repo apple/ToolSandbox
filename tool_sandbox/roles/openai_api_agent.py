@@ -1,6 +1,6 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Agent role for any model that conforms to OpenAI tool use API"""
+"""Agent role for any model that conforms to OpenAI tool use API."""
 
 from typing import Any, Iterable, List, Literal, Optional, Union, cast
 
@@ -30,19 +30,20 @@ from tool_sandbox.roles.base_role import BaseRole
 
 
 class OpenAIAPIAgent(BaseRole):
-    """Agent role for any model that conforms to OpenAI tool use API"""
+    """Agent role for any model that conforms to OpenAI tool use API."""
 
     role_type: RoleType = RoleType.AGENT
     model_name: str
 
     def __init__(self) -> None:
+        """Initialize the OpenAI API agent."""
         # We set the `base_url` explicitly here to avoid picking up the
         # `OPENAI_BASE_URL` environment variable that may be set for serving models as
         # OpenAI API compatible servers.
         self.openai_client: OpenAI = OpenAI(base_url="https://api.openai.com/v1")
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
 
         Specifically, interprets system, user, execution environment messages and sends out NL response to user, or
         code snippet to execution environment.
@@ -73,23 +74,20 @@ class OpenAIAPIAgent(BaseRole):
         available_tool_names = set(available_tools.keys())
         openai_tools = (
             convert_to_openai_tools(available_tools)
-            if messages[-1].sender == RoleType.USER
-            or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
+            if messages[-1].sender == RoleType.USER or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
             else NOT_GIVEN
         )
         # We need a cast here since `convert_to_openai_tool` returns a plain dict, but
         # `ChatCompletionToolParam` is a `TypedDict`.
-        openai_tools = cast(
-            Union[Iterable[ChatCompletionToolParam], NotGiven],
+        openai_tools = cast(  # type: ignore[assignment]
+            "Union[Iterable[ChatCompletionToolParam], NotGiven]",
             openai_tools,
         )
         # Convert to OpenAI messages.
         current_context = get_current_context()
         openai_messages, _ = to_openai_messages(messages)
         # Call model
-        response = self.model_inference(
-            openai_messages=openai_messages, openai_tools=openai_tools
-        )
+        response = self.model_inference(openai_messages=openai_messages, openai_tools=openai_tools)  # type: ignore[arg-type]
         # Parse response
         openai_response_message = response.choices[0].message
         # Message contains no tool call, aka addressed to user
@@ -107,11 +105,7 @@ class OpenAIAPIAgent(BaseRole):
             for tool_call in openai_response_message.tool_calls:
                 # The response contains the agent facing tool name so we need to get
                 # the execution facing tool name when creating the Python code.
-                execution_facing_tool_name = (
-                    current_context.get_execution_facing_tool_name(
-                        tool_call.function.name
-                    )
-                )
+                execution_facing_tool_name = current_context.get_execution_facing_tool_name(tool_call.function.name)
                 response_messages.append(
                     Message(
                         sender=self.role_type,
@@ -142,7 +136,7 @@ class OpenAIAPIAgent(BaseRole):
         ],
         openai_tools: Union[Iterable[ChatCompletionToolParam], NotGiven],
     ) -> ChatCompletion:
-        """Run OpenAI model inference
+        """Run OpenAI model inference.
 
         Args:
             openai_messages:    List of OpenAI API format messages
@@ -154,18 +148,24 @@ class OpenAIAPIAgent(BaseRole):
         with all_logging_disabled():
             return self.openai_client.chat.completions.create(
                 model=self.model_name,
-                messages=cast(list[ChatCompletionMessageParam], openai_messages),
+                messages=cast("list[ChatCompletionMessageParam]", openai_messages),
                 tools=openai_tools,
             )
 
 
-class GPT_4_0125_Agent(OpenAIAPIAgent):
+class GPT_4_0125_Agent(OpenAIAPIAgent):  # noqa: N801
+    """GPT-4 0125 agent."""
+
     model_name = "gpt-4-0125-preview"
 
 
-class GPT_3_5_0125_Agent(OpenAIAPIAgent):
+class GPT_3_5_0125_Agent(OpenAIAPIAgent):  # noqa: N801
+    """GPT-3.5 0125 agent."""
+
     model_name = "gpt-3.5-turbo-0125"
 
 
-class GPT_4_o_2024_05_13_Agent(OpenAIAPIAgent):
+class GPT_4_o_2024_05_13_Agent(OpenAIAPIAgent):  # noqa: N801
+    """GPT-4o 2024-05-13 agent."""
+
     model_name = "gpt-4o-2024-05-13"

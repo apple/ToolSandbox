@@ -14,12 +14,10 @@ from tool_sandbox.common.utils import register_as_tool
 
 @register_as_tool(visible_to=(RoleType.USER,))
 def end_conversation() -> None:
-    """Finish the conversation
+    """Finish the conversation.
 
     Trigger this tool when you think the agent have completed the task for you,
     or the agent is unable to complete the task. Either way this tool will stop the conversation
-
-    Returns:
 
     Raises:
         ValueError: If conversation already ended

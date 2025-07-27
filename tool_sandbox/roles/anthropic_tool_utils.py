@@ -18,6 +18,15 @@ from tool_sandbox.common.tool_conversion import convert_to_openai_tool
 
 
 def convert_to_anthropic_tool(name: str, tool: Callable[..., Any]) -> ToolParam:
+    """Convert a tool to an Anthropic tool.
+
+    Args:
+        name: The name of the tool.
+        tool: The tool to convert.
+
+    Returns:
+        The converted tool.
+    """
     formatted = convert_to_openai_tool(tool, name=name)["function"]
     return ToolParam(
         name=formatted["name"],

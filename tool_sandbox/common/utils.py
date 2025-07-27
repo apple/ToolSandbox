@@ -33,9 +33,7 @@ LOGGER = logging.getLogger(__name__)
 # Taken from openai._types
 # Sentinel class used until PEP 0661 is accepted
 class NotGiven:
-    """
-    A sentinel singleton class used to distinguish omitted keyword arguments
-    from those passed in with the value None (which may have different behavior).
+    """A sentinel singleton class used to distinguish omitted keyword arguments from those passed in with the value None (which may have different behavior).
 
     For example:
 
@@ -69,125 +67,141 @@ class DataframeFilterMethodType(Protocol):
         self,
         dataframe: pl.DataFrame,
         column_name: str,
-        value: Any,
-        **kwargs: Union[int, Any],
-    ) -> pl.DataFrame: ...
+        value: Any,  # noqa: ANN401
+        **kwargs: int,
+    ) -> pl.DataFrame:
+        """Filter dataframe.
+
+        Args:
+            dataframe:      Dataframe to filter
+            column_name:    Name of column
+            value:          Value to match against
+            **kwargs:       Additional arguments to the filter function
+
+        Returns:
+            Filtered dataframe
+        """
+        ...
 
 
 def exact_match_filter_dataframe(
-    dataframe: pl.DataFrame, column_name: str, value: Any, **kwargs: Union[int, Any]
+    dataframe: pl.DataFrame,
+    column_name: str,
+    value: Any,  # noqa: ANN401
+    **kwargs: int,
 ) -> pl.DataFrame:
-    """Filter dataframe by exact matching value on 1 column
+    """Filter dataframe by exact matching value on 1 column.
 
     Args:
-    ----
         dataframe:      Dataframe to filter
         column_name:    Name of column
         value:          Value to match against
+        **kwargs:       Additional arguments to the filter function
 
     Returns:
-    -------
         Filtered dataframe
-
     """
     return dataframe.filter(pl.col(column_name) == value)
 
 
 def subsequence_filter_dataframe(
-    dataframe: pl.DataFrame, column_name: str, value: Any, **kwargs: Union[int, Any]
+    dataframe: pl.DataFrame,
+    column_name: str,
+    value: Any,  # noqa: ANN401
+    **kwargs: int,
 ) -> pl.DataFrame:
-    """Filter dataframe for rows that contains value as a subsequence in column_name
+    """Filter dataframe for rows that contains value as a subsequence in column_name.
 
     Args:
-    ----
         dataframe:      Dataframe to filter
         column_name:    Name of column
         value:          Value to match against
+        **kwargs:       Additional arguments to the filter function
 
     Returns:
-    -------
         Filtered dataframe
-
     """
     return dataframe.filter(pl.col(column_name).str.contains(str(value)))
 
 
 def range_filter_dataframe(
-    dataframe: pl.DataFrame, column_name: str, value: Any, **kwargs: Union[int, Any]
+    dataframe: pl.DataFrame,
+    column_name: str,
+    value: Any,  # noqa: ANN401
+    **kwargs: int,
 ) -> pl.DataFrame:
-    """Filter dataframe for rows whose column_name value fits in a range. The value must implement __lt__ __gt__ __eq__
-        __add__. Boundary included.
+    """Filter dataframe for rows whose column_name value fits in a range. The value must implement __lt__ __gt__ __eq__, __add__. Boundary included.
 
     Args:
-    ----
         dataframe:      Dataframe to filter
         column_name:    Name of column
         value:          Lower or upperbound of the range
         **kwargs:       Must contain value_delta, value + value_delta provides the other end of the bound
 
     Returns:
-    -------
         Filtered dataframe
 
     """
     try:
         value_delta = kwargs.get("value_delta")
-    except KeyError:
-        raise KeyError("**kwargs must contain 'value_delta'")
+    except KeyError as err:
+        raise KeyError("**kwargs must contain 'value_delta'") from err
     lower_bound, upperbound = (
         min(value, value + value_delta),
         max(value, value + value_delta),
     )
-    return dataframe.filter(
-        (pl.col(column_name) >= lower_bound) & (pl.col(column_name) <= upperbound)
-    )
+    return dataframe.filter((pl.col(column_name) >= lower_bound) & (pl.col(column_name) <= upperbound))
 
 
 def lt_eq_filter_dataframe(
-    dataframe: pl.DataFrame, column_name: str, value: Any, **kwargs: Union[int, Any]
+    dataframe: pl.DataFrame,
+    column_name: str,
+    value: Any,  # noqa: ANN401
+    **kwargs: int,
 ) -> pl.DataFrame:
     """Filter dataframe for rows whose column_name are less than or equal to value. The value must implement __lt__.
 
     Args:
-    ----
         dataframe:      Dataframe to filter
         column_name:    Name of column
         value:          Upperbound of column value
+        **kwargs:       Additional arguments to the filter function
 
     Returns:
-    -------
         Filtered dataframe
-
     """
     return dataframe.filter(pl.col(column_name) <= value)
 
 
 def gt_eq_filter_dataframe(
-    dataframe: pl.DataFrame, column_name: str, value: Any, **kwargs: Union[int, Any]
+    dataframe: pl.DataFrame,
+    column_name: str,
+    value: Any,  # noqa: ANN401
+    **kwargs: int,
 ) -> pl.DataFrame:
     """Filter dataframe for rows whose column_name are greater than or equal to value. The value must implement __gt__.
 
     Args:
-    ----
         dataframe:      Dataframe to filter
         column_name:    Name of column
         value:          Lowerbound of column value
+        **kwargs:       Additional arguments to the filter function
 
     Returns:
-    -------
         Filtered dataframe
-
     """
     return dataframe.filter(pl.col(column_name) >= value)
 
 
 def fuzzy_match_filter_dataframe(
-    dataframe: pl.DataFrame, column_name: str, value: Any, **kwargs: Union[int, Any]
+    dataframe: pl.DataFrame,
+    column_name: str,
+    value: Any,  # noqa: ANN401
+    **kwargs: int,
 ) -> pl.DataFrame:
-    """Filter dataframe by fuzzy matching string value on 1 column. Backed by fuzz.WRatio
+    """Filter dataframe by fuzzy matching string value on 1 column. Backed by fuzz.WRatio.
 
     Args:
-    ----
         dataframe:      Dataframe to filter
         column_name:    Name of column
         value:          Value to match against
@@ -195,7 +209,6 @@ def fuzzy_match_filter_dataframe(
                         threshold for fuzz.WRatio, only entries above the threshold are selected
 
     Returns:
-    -------
         Filtered dataframe
     """
     threshold = kwargs.get("threshold", 90)
@@ -214,7 +227,7 @@ def filter_dataframe(
     dataframe: pl.DataFrame,
     filter_criteria: list[tuple[str, Any, DataframeFilterMethodType]],
 ) -> pl.DataFrame:
-    """Filter dataframe given a filter method, column name and target value
+    """Filter dataframe given a filter method, column name and target value.
 
     Args:
         dataframe:          Dataframe to filter
@@ -240,7 +253,7 @@ def filter_dataframe(
 
 
 def polars_multiply_columns_expression(column_names: list[str]) -> pl.Expr:
-    """Returns a polars expression that multiplies all columns in column_names
+    """Returns a polars expression that multiplies all columns in column_names.
 
     Args:
         column_names:   Columns to multiply
@@ -256,11 +269,11 @@ def polars_multiply_columns_expression(column_names: list[str]) -> pl.Expr:
 
 def add_tool_trace(
     f: Callable[..., Any],
-    result: Any,
-    *args: Union[NotGiven, Any],
-    **kwargs: Union[NotGiven, Any],
+    result: Any,  # noqa: ANN401
+    *args: Union[NotGiven, Any],  # noqa: ANN401
+    **kwargs: Union[NotGiven, Any],  # noqa: ANN401
 ) -> None:
-    """Add the trace of a tool: tool_name, arguments, execution results into current message in execution_context
+    """Add the trace of a tool: tool_name, arguments, execution results into current message in execution_context.
 
     Args:
         f:          Tool callable
@@ -275,9 +288,7 @@ def add_tool_trace(
         # Very complex objects, and we'll need to json dump the trace into string. This adds
         # a restriction on tool definition (must be json serializable)
         # Note that a trace won't exist if tool execution raised exception
-        message_entry: pl.DataFrame = current_context.get_database(
-            namespace=DatabaseNamespace.SANDBOX
-        )
+        message_entry: pl.DataFrame = current_context.get_database(namespace=DatabaseNamespace.SANDBOX)
         existing_tool_trace_series: Optional[pl.Series] = message_entry["tool_trace"][0]
         if existing_tool_trace_series is None:
             existing_tool_trace: list[str] = []
@@ -299,19 +310,15 @@ def add_tool_trace(
                 ensure_ascii=False,
             )
         )
-        new_message_entry = message_entry.with_columns(
-            pl.lit(pl.Series("tool_trace", [existing_tool_trace]))
-        )
-        current_context.update_database(
-            namespace=DatabaseNamespace.SANDBOX, dataframe=new_message_entry
-        )
+        new_message_entry = message_entry.with_columns(pl.lit(pl.Series("tool_trace", [existing_tool_trace])))
+        current_context.update_database(namespace=DatabaseNamespace.SANDBOX, dataframe=new_message_entry)
 
 
 def register_as_tool(
     visible_to: Optional[tuple[RoleType]] = None,
     backend: ToolBackend = ToolBackend.DEFAULT,
 ) -> Callable[..., Any]:
-    """Decorator factory, making decorator with arguments possible
+    """Decorator factory, making decorator with arguments possible.
 
     Args:
         visible_to:     Which roles are this tool visible to. Defaults to Agent.
@@ -322,8 +329,7 @@ def register_as_tool(
     """
 
     def internal_decorator(func: Callable[..., T]) -> Callable[..., T]:
-        """Necessary to make decorator factory work. Returns a decorator which marks a function as tool,
-        available for Roles to use
+        """Necessary to make decorator factory work. Returns a decorator which marks a function as tool, available for Roles to use.
 
         Make use of decorator.decorate to keep function signature intact
 
@@ -334,7 +340,8 @@ def register_as_tool(
             decorated function
         """
 
-        def _f(f: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+        # ! args and kwargs should not use Any, we can use placeholder types instead. https://stackoverflow.com/questions/37031928/type-annotations-for-args-and-kwargs
+        def _f(f: Callable[..., T], *args: int, **kwargs: str) -> T:
             # Disable tracing for any tool call happened inside another tool's scope
             with new_context_with_attribute(trace_tool=False):
                 result = f(*args, **kwargs)
@@ -343,13 +350,9 @@ def register_as_tool(
             return result
 
         dec = decorate(func, _f)
-        setattr(dec, "is_tool", True)
-        setattr(
-            dec,
-            "visible_to",
-            visible_to if visible_to is not None else (RoleType.AGENT,),
-        )
-        setattr(dec, "backend", backend)
+        dec.is_tool = True  # type: ignore
+        dec.visible_to = visible_to if visible_to is not None else (RoleType.AGENT,)  # type: ignore
+        dec.backend = backend  # type: ignore
         return dec
 
     return internal_decorator
@@ -357,8 +360,7 @@ def register_as_tool(
 
 @contextmanager
 def all_logging_disabled(highest_level: int = logging.CRITICAL) -> Iterator[None]:
-    """A context manager that will prevent any logging messages
-    triggered during the body from being processed.
+    """A context manager that will prevent any logging messages triggered during the body from being processed.
 
     This is useful when a known package constantly emits necessary warnings.
     """
@@ -370,8 +372,12 @@ def all_logging_disabled(highest_level: int = logging.CRITICAL) -> Iterator[None
         logging.disable(previous_level)
 
 
-def attrs_serialize(inst: Any, field: Any, value: Any) -> Any:
-    """Serialize troublesome values for attrs. Note almost all below are irreversible operations"""
+def attrs_serialize(
+    inst: Any,  # noqa: ANN401
+    field: Any,  # noqa: ANN401
+    value: Any,  # noqa: ANN401
+) -> Any:  # noqa: ANN401
+    """Serialize troublesome values for attrs. Note almost all below are irreversible operations."""
     if isinstance(value, functools.partial):
         return value.func.__name__
     if isfunction(value):
@@ -387,7 +393,7 @@ def attrs_serialize(inst: Any, field: Any, value: Any) -> Any:
 
 
 def deterministic_uuid(payload: str) -> str:
-    """Simple helper used to generate a deterministic uuid string
+    """Simple helper used to generate a deterministic uuid string.
 
     Args:
         payload:    Payload string. Any uuid derived from the same payload is guaranteed to be the same
@@ -413,12 +419,9 @@ def is_close(value: T, reference: T, atol: Optional[float] = None) -> bool:
     Returns:
         Boolean indicating if the values are close
     """
-    if (
-        atol is not None
-        and isinstance(value, (float, int))
-        and isinstance(reference, (float, int))
-    ):
-        return abs(value - reference) <= atol
+    if atol is not None and isinstance(value, (float, int)) and isinstance(reference, (float, int)):
+        # ? reference and value are both float | int, but mypy complains that reference doesn't support -.
+        return abs(value - reference) <= atol  # type: ignore
     return value == reference
 
 
@@ -441,6 +444,4 @@ def get_next_iso_weekday_datetime(next_iso_weekday: int) -> datetime.datetime:
         datetime object for next weekday.
     """
     current_datetime = datetime.datetime.now()
-    return current_datetime + datetime.timedelta(
-        (next_iso_weekday - current_datetime.isoweekday()) % 7
-    )
+    return current_datetime + datetime.timedelta((next_iso_weekday - current_datetime.isoweekday()) % 7)

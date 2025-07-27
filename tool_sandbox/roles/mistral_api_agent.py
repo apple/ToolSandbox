@@ -1,6 +1,6 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Implementation for Mistral Agent Role with OpenAI API"""
+"""Implementation for Mistral Agent Role with OpenAI API."""
 
 import json
 import logging
@@ -58,12 +58,13 @@ MISTRAL_TOKENIZER_PATH = MISTRAL_PATH.joinpath("tokenizer.model.v3")
 
 
 def generate_valid_tool_call_id() -> str:
-    """Generate valid tool call id of length 9 by uuid"""
+    """Generate valid tool call id of length 9 by uuid."""
     return str(uuid.uuid4())[-9:]
 
 
 def parse_assistant_content_mistral(content: str) -> dict[str, Any]:
     """Parse assistant content and extract tool calls.
+
     Example tool call content:
         content = '[TOOL_CALLS] [{"name": "get_cellular_service_status",
                     "arguments": {}}]\n\nPlease wait while the system checks your cellular service status.\n
@@ -74,7 +75,7 @@ def parse_assistant_content_mistral(content: str) -> dict[str, Any]:
                     \n[else]\nUnable to determine your cellular service status. Please verify your network connection and try again.\n
                     \n
                     [endif]'
-    """
+    """  # noqa: D301
     if PROMPT_TEMPLATE_MISTRAL_TOOL_CALL not in content:
         return {"content": content}
     match = content.split(PROMPT_TEMPLATE_MISTRAL_TOOL_CALL)[1:]
@@ -104,7 +105,14 @@ def parse_assistant_content_mistral(content: str) -> dict[str, Any]:
 
 
 def completion_to_chat_completion(response: Completion) -> ChatCompletion:
-    """Convert Open AI Completion response to ChatCompletion response"""
+    """Convert Open AI Completion response to ChatCompletion response.
+
+    Args:
+        response: The OpenAI Completion response.
+
+    Returns:
+        The ChatCompletion response.
+    """
     assert response.choices[0].text is not None
     parsed_messages = parse_assistant_content_mistral(content=response.choices[0].text)
     completion_response = ChatCompletion(
@@ -127,7 +135,14 @@ def completion_to_chat_completion(response: Completion) -> ChatCompletion:
 
 
 def to_mistral_tool(tool: dict[str, Any]) -> Tool:
-    """Convert open ai tool to mistral tool"""
+    """Convert open ai tool to mistral tool.
+
+    Args:
+        tool: The OpenAI tool.
+
+    Returns:
+        The Mistral tool.
+    """
     function = tool["function"]
     name = function["name"]
     description = function["description"]
@@ -144,7 +159,14 @@ def to_mistral_tool(tool: dict[str, Any]) -> Tool:
 def to_mistral_message(
     message: dict[str, Any],
 ) -> Union[AssistantMessage, UserMessage, SystemMessage, ToolMessage]:
-    """Convert open ai message to mistral message"""
+    """Convert open ai message to mistral message.
+
+    Args:
+        message: The OpenAI message.
+
+    Returns:
+        The Mistral message.
+    """
     if message["role"] == "assistant":
         assistant_message = {}
         if "content" in message:
@@ -179,6 +201,7 @@ def create_mistral_chat_prompt(
     tools: Optional[list[dict[str, Any]]] = None,
 ) -> str:
     """Process messages requests to mistral prompt for model inference.
+
     Args:
         tokenizer: Mistral Tokenizer
         messages (list[dict[str, Any]]): OpenAI request messages.
@@ -201,33 +224,30 @@ def create_mistral_chat_prompt(
 
 
 class MistralAgent(BaseRole):
-    """Agent role for mistral model that conforms to OpenAI tool use API"""
+    """Agent role for mistral model that conforms to OpenAI tool use API."""
 
     role_type: RoleType = RoleType.AGENT
     model_name: str
 
     def __init__(self) -> None:
+        """Initialize the Mistral agent."""
         super().__init__()
         self.openai_client: OpenAI = OpenAI(api_key="EMPTY")
 
         MISTRAL_PATH.mkdir(parents=True, exist_ok=True)
         if not MISTRAL_TOKENIZER_PATH.exists():
             hf_token = os.environ.get("HF_TOKEN")
-            assert (
-                hf_token is not None
-            ), "`HF_TOKEN` must be set to your Hugging Face token."
+            assert hf_token is not None, "`HF_TOKEN` must be set to your Hugging Face token."
             snapshot_download(
                 repo_id="mistralai/Mistral-7B-Instruct-v0.3",
                 allow_patterns=["tokenizer.model.v3"],
                 local_dir=MISTRAL_PATH,
                 token=hf_token,
             )
-        self.mistral_tokenizer = MistralTokenizer.from_file(
-            f"{MISTRAL_PATH}/tokenizer.model.v3"
-        )
+        self.mistral_tokenizer = MistralTokenizer.from_file(f"{MISTRAL_PATH}/tokenizer.model.v3")
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
 
         Specifically, interprets system, user, execution environment messages and sends out NL response to user, or
         code snippet to execution environment.
@@ -258,23 +278,20 @@ class MistralAgent(BaseRole):
         available_tool_names = set(available_tools.keys())
         openai_tools = (
             convert_to_openai_tools(available_tools)
-            if messages[-1].sender == RoleType.USER
-            or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
+            if messages[-1].sender == RoleType.USER or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
             else NOT_GIVEN
         )
         # We need a cast here since `convert_to_openai_tool` returns a plain dict, but
         # `ChatCompletionToolParam` is a `TypedDict`.
         openai_tools = cast(
-            Union[Iterable[ChatCompletionToolParam], NotGiven],
+            "Union[Iterable[ChatCompletionToolParam], NotGiven]",
             openai_tools,
-        )
+        )  # type: ignore
         # Convert to OpenAI messages.
         current_context = get_current_context()
         openai_messages, _ = to_openai_messages(messages)
         # Call model
-        response = self.model_inference(
-            openai_messages=openai_messages, openai_tools=openai_tools
-        )
+        response = self.model_inference(openai_messages=openai_messages, openai_tools=openai_tools)  # type: ignore
         # Parse response
         openai_response_message = response.choices[0].message
         # Message contains no tool call, aka addressed to user
@@ -292,11 +309,7 @@ class MistralAgent(BaseRole):
             for tool_call in openai_response_message.tool_calls:
                 # The response contains the agent facing tool name so we need to get
                 # the execution facing tool name when creating the Python code.
-                execution_facing_tool_name = (
-                    current_context.get_execution_facing_tool_name(
-                        tool_call.function.name
-                    )
-                )
+                execution_facing_tool_name = current_context.get_execution_facing_tool_name(tool_call.function.name)
                 response_messages.append(
                     Message(
                         sender=self.role_type,
@@ -327,7 +340,7 @@ class MistralAgent(BaseRole):
         ],
         openai_tools: Union[Iterable[ChatCompletionToolParam], NotGiven],
     ) -> ChatCompletion:
-        """Run OpenAI model inference
+        """Run OpenAI model inference.
 
         Args:
             openai_messages:    List of OpenAI API format messages
@@ -356,12 +369,11 @@ class MistralOpenAIServerAgent(MistralAgent):
     """Agent using model hosted through an OpenAI API compatible server using vLLM."""
 
     def __init__(self, model_name: str) -> None:
+        """Initialize the Mistral OpenAI server agent."""
         super().__init__()
         self.model_name = model_name
 
-        assert (
-            "OPENAI_BASE_URL" in os.environ
-        ), "The `OPENAI_BASE_URL` environment variable must be set."
+        assert "OPENAI_BASE_URL" in os.environ, "The `OPENAI_BASE_URL` environment variable must be set."
         self.openai_client: OpenAI = OpenAI(api_key="EMPTY")
 
         # Monkey patch self.openai_client.chat.completions.create with pre and post
@@ -373,8 +385,7 @@ class MistralOpenAIServerAgent(MistralAgent):
             messages: list[dict[str, Any]],
             tools: Optional[list[dict[str, Any]]],
         ) -> ChatCompletion:
-            """Add preprocessing ingesting tools into system prompt
-            Add postprocessing to parse function call response
+            """Add preprocessing ingesting tools into system prompt. Add postprocessing to parse function call response.
 
             Args:
                 model:      Model name
@@ -384,12 +395,8 @@ class MistralOpenAIServerAgent(MistralAgent):
             Returns:
                 OpenAI compatible response object
             """
-            prompt = create_mistral_chat_prompt(
-                tokenizer=self.mistral_tokenizer, messages=messages, tools=tools
-            )
-            response = create_api(
-                model=model, prompt=prompt, max_tokens=1024, temperature=0.0
-            )
+            prompt = create_mistral_chat_prompt(tokenizer=self.mistral_tokenizer, messages=messages, tools=tools)
+            response = create_api(model=model, prompt=prompt, max_tokens=1024, temperature=0.0)
             assert response.choices[0].text is not None
             completion_response = completion_to_chat_completion(response=response)
             return completion_response

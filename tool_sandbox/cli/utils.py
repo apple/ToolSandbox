@@ -43,6 +43,8 @@ from tool_sandbox.scenarios import named_scenarios
 
 
 class RoleImplType(StrEnum):
+    """Role implementation type."""
+
     Hermes = auto()
     Gorilla = auto()
     GPT_3_5_0125 = auto()
@@ -63,15 +65,9 @@ class RoleImplType(StrEnum):
 
 
 AGENT_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
-    RoleImplType.Hermes: lambda: HermesAPIAgent(
-        model_name="NousResearch/Hermes-2-Pro-Mistral-7B"
-    ),
-    RoleImplType.Gorilla: lambda: GorillaAPIAgent(
-        model_name="gorilla-llm/gorilla-openfunctions-v2"
-    ),
-    RoleImplType.MistralOpenAIServer: lambda: MistralOpenAIServerAgent(
-        model_name="mistralai/Mistral-7B-Instruct-v0.3"
-    ),
+    RoleImplType.Hermes: lambda: HermesAPIAgent(model_name="NousResearch/Hermes-2-Pro-Mistral-7B"),
+    RoleImplType.Gorilla: lambda: GorillaAPIAgent(model_name="gorilla-llm/gorilla-openfunctions-v2"),
+    RoleImplType.MistralOpenAIServer: lambda: MistralOpenAIServerAgent(model_name="mistralai/Mistral-7B-Instruct-v0.3"),
     RoleImplType.GPT_3_5_0125: GPT_3_5_0125_Agent,
     RoleImplType.GPT_4_0125: GPT_4_0125_Agent,
     RoleImplType.GPT_4_o_2024_05_13: GPT_4_o_2024_05_13_Agent,
@@ -80,16 +76,10 @@ AGENT_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
     RoleImplType.Claude_3_Haiku: ClaudeHaikuAgent,
     RoleImplType.Gemini_1_0: lambda: GeminiAgent(model_name="gemini-1.0-pro"),
     RoleImplType.Gemini_1_5: lambda: GeminiAgent(model_name="gemini-1.5-pro-001"),
-    RoleImplType.Gemini_1_5_Flash: lambda: GeminiAgent(
-        model_name="gemini-1.5-flash-001"
-    ),
+    RoleImplType.Gemini_1_5_Flash: lambda: GeminiAgent(model_name="gemini-1.5-flash-001"),
     RoleImplType.Cli: CliAgent,
-    RoleImplType.Cohere_Command_R: lambda: CohereAgent(
-        model_name="CohereForAI/c4ai-command-r-v01"
-    ),
-    RoleImplType.Cohere_Command_R_Plus: lambda: CohereAgent(
-        model_name="CohereForAI/c4ai-command-r-plus"
-    ),
+    RoleImplType.Cohere_Command_R: lambda: CohereAgent(model_name="CohereForAI/c4ai-command-r-v01"),
+    RoleImplType.Cohere_Command_R_Plus: lambda: CohereAgent(model_name="CohereForAI/c4ai-command-r-plus"),
     RoleImplType.Unhelpful: UnhelpfulAgent,
 }
 
@@ -130,9 +120,7 @@ def resolve_scenarios(
 
     name_to_scenario = {
         name: scenario
-        for name, scenario in named_scenarios(
-            preferred_tool_backend=preferred_tool_backend
-        ).items()
+        for name, scenario in named_scenarios(preferred_tool_backend=preferred_tool_backend).items()
         if name in desired_scenario_names
     }
 
@@ -140,10 +128,7 @@ def resolve_scenarios(
     # typo in the scenario names of the CLI command.
     if len(desired_scenario_names) != len(name_to_scenario):
         missing_scenarios = set(desired_scenario_names) - set(name_to_scenario.keys())
-        raise KeyError(
-            "The following desired scenarios do not exist: "
-            f"{sorted(list(missing_scenarios))}"
-        )
+        raise KeyError(f"The following desired scenarios do not exist: {sorted(list(missing_scenarios))}")  # noqa: C414
     return name_to_scenario
 
 
@@ -181,18 +166,6 @@ def run_scenario(
             output_directory=output_directory,
             scenario_name=name,
         )
-        return {
-            "name": name,
-            "categories": scenario.categories,
-            "traceback": None,
-            "exception_type": None,
-            "milestone_similarity": result.evaluation_result.milestone_similarity,
-            "minefield_similarity": result.evaluation_result.minefield_similarity,
-            "similarity": result.evaluation_result.similarity,
-            "turn_count": result.evaluation_result.turn_count,
-            "milestone_mapping": result.evaluation_result.milestone_mapping,
-            "minefield_mapping": result.evaluation_result.minefield_mapping,
-        }
     except Exception as e:
         return {
             "name": name,
@@ -205,6 +178,19 @@ def run_scenario(
             "turn_count": scenario.max_messages,
             "milestone_mapping": {},
             "minefield_mapping": {},
+        }
+    else:
+        return {
+            "name": name,
+            "categories": scenario.categories,
+            "traceback": None,
+            "exception_type": None,
+            "milestone_similarity": result.evaluation_result.milestone_similarity,
+            "minefield_similarity": result.evaluation_result.minefield_similarity,
+            "similarity": result.evaluation_result.similarity,
+            "turn_count": result.evaluation_result.turn_count,
+            "milestone_mapping": result.evaluation_result.milestone_mapping,
+            "minefield_mapping": result.evaluation_result.minefield_mapping,
         }
     finally:
         for role in roles.values():
@@ -223,17 +209,13 @@ def get_category_summary(
         Category wise summary.
     """
     # Aggregate results by category
-    category_summary: dict[str, dict[str, list[float]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
+    category_summary: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     for current_summary in result_summary:
         for category in current_summary["categories"]:
             # The augmented scenarios are based on top of the `THREE_DISTRACTION_TOOLS`,
             # but we do not want to double count the stats for `THREE_DISTRACTION_TOOLS`.
             # Otherwise it would not be comparable to e.g. `TEN_DISTRACTION_TOOLS`.
-            if category == ScenarioCategories.THREE_DISTRACTION_TOOLS and set(
-                current_summary["categories"]
-            ) & {
+            if category == ScenarioCategories.THREE_DISTRACTION_TOOLS and set(current_summary["categories"]) & {
                 ScenarioCategories.TOOL_NAME_SCRAMBLED,
                 ScenarioCategories.TOOL_DESCRIPTION_SCRAMBLED,
                 ScenarioCategories.ARG_DESCRIPTION_SCRAMBLED,
@@ -241,18 +223,10 @@ def get_category_summary(
                 ScenarioCategories.ARG_NAME_SCRAMBLED,
             }:
                 continue
-            category_summary[category]["similarity"].append(
-                current_summary["similarity"]
-            )
-            category_summary[category]["turn_count"].append(
-                current_summary["turn_count"]
-            )
-        category_summary["ALL_CATEGORIES"]["similarity"].append(
-            current_summary["similarity"]
-        )
-        category_summary["ALL_CATEGORIES"]["turn_count"].append(
-            current_summary["turn_count"]
-        )
+            category_summary[category]["similarity"].append(current_summary["similarity"])
+            category_summary[category]["turn_count"].append(current_summary["turn_count"])
+        category_summary["ALL_CATEGORIES"]["similarity"].append(current_summary["similarity"])
+        category_summary["ALL_CATEGORIES"]["turn_count"].append(current_summary["turn_count"])
     return category_summary
 
 
@@ -273,9 +247,7 @@ def get_category_to_scenario_count(
             # The augmented scenarios are based on top of the `THREE_DISTRACTION_TOOLS`,
             # but we do not want to double count the stats for `THREE_DISTRACTION_TOOLS`.
             # Otherwise it would not be comparable to e.g. `TEN_DISTRACTION_TOOLS`.
-            if category == ScenarioCategories.THREE_DISTRACTION_TOOLS and set(
-                scenario.categories
-            ) & {
+            if category == ScenarioCategories.THREE_DISTRACTION_TOOLS and set(scenario.categories) & {
                 ScenarioCategories.TOOL_NAME_SCRAMBLED,
                 ScenarioCategories.TOOL_DESCRIPTION_SCRAMBLED,
                 ScenarioCategories.ARG_DESCRIPTION_SCRAMBLED,
@@ -300,12 +272,7 @@ def get_necessary_tool_name_to_scenario_count(
         A counter object containing counts for each necessary tool names.
     """
     tool_name_counter: Counter[Union[ScenarioCategories, str]] = Counter(
-        {
-            tool_name: 0
-            for tool_name in get_current_context().get_available_tools(
-                scrambling_allowed=False
-            )
-        }
+        dict.fromkeys(get_current_context().get_available_tools(scrambling_allowed=False), 0)
     )
     # Necessary tool names can be deducted from allowed tools in NO_DISTRACTION_TOOLS category
     # Then the total count equals the count from this category * number of augmentations.

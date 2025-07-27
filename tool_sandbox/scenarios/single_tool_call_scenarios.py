@@ -1,7 +1,6 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Simple Scenarios which only requires 1 tool call to be issued"""
-
+"""Simple Scenarios which only requires 1 tool call to be issued."""
 
 import json
 from functools import partial
@@ -36,7 +35,10 @@ from tool_sandbox.scenarios.user_simulator_few_shot_examples import USER_INSTRUC
 
 
 def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtension]:
-    """Specify test scenario as extensions over a base scenario
+    """Specify test scenario as extensions over a base scenario.
+
+    Args:
+        base_scenarios: The base scenarios.
 
     Returns:
         A List of ScenarioExtensions
@@ -253,8 +255,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for Homer S's phone number. It should be +10000000000. "
+                    "content": USER_INSTRUCTION + "Search for Homer S's phone number. It should be +10000000000. "
                     "Do not leak this information. You do not have more information about Homer S.",
                 },
                 {
@@ -309,9 +310,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "+10000000000",
                                 },
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         ),
                     ]
                 ),
@@ -324,8 +323,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for your (User A's) boss's name. It should be Homer S. "
+                    "content": USER_INSTRUCTION + "Search for your (User A's) boss's name. It should be Homer S. "
                     "Do not leak this information. You do not have more information about your boss.",
                 },
                 {
@@ -406,9 +404,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "tool_trace": json.dumps(
                                         {
                                             "tool_name": "search_contacts",
-                                            "arguments": {
-                                                "phone_number": "+10000000000"
-                                            },
+                                            "arguments": {"phone_number": "+10000000000"},
                                         },
                                         ensure_ascii=False,
                                     ),
@@ -470,9 +466,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "relationship": pl.String,
                                 },
                             ),
-                            column_similarity_measure={
-                                "relationship": column_exact_match_similarity
-                            },
+                            column_similarity_measure={"relationship": column_exact_match_similarity},
                             reference_milestone_node_index=-1,
                         )
                     ]
@@ -509,8 +503,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.USER,
                     "recipient": RoleType.AGENT,
-                    "content": f"Remove id {deterministic_uuid(payload='Fredrik Thordendal')} "
-                    f"from my contact",
+                    "content": f"Remove id {deterministic_uuid(payload='Fredrik Thordendal')} from my contact",
                 },
             ],
             tool_allow_list=["remove_contact"],
@@ -726,8 +719,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search what is the timestamp for Thanksgiving. "
+                    "content": USER_INSTRUCTION + "Search what is the timestamp for Thanksgiving. "
                     "You do not have more information.",
                 },
                 {
@@ -1018,8 +1010,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Convert 2048 USD to CNY. You do not have more information.",
+                    "content": USER_INSTRUCTION + "Convert 2048 USD to CNY. You do not have more information.",
                 },
                 {
                     "sender": RoleType.USER,
@@ -1064,8 +1055,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Convert 2048 USD to CNY. You do not have more information.",
+                    "content": USER_INSTRUCTION + "Convert 2048 USD to CNY. You do not have more information.",
                 },
                 {
                     "sender": RoleType.USER,
@@ -1109,7 +1099,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
 def named_single_tool_call_scenarios(
     preferred_tool_backend: ToolBackend,
 ) -> Dict[str, Scenario]:
-    """Scenarios where only 1 tool call is required to get the job done
+    """Scenarios where only 1 tool call is required to get the job done.
 
     Note that this differs from the simple / multi definition of Gorilla. All scenarios below have only the necessary
     tools provided to the model. Additional scenarios will be created to introduce distractions as well.
@@ -1120,9 +1110,7 @@ def named_single_tool_call_scenarios(
     Returns:
         A Dict containing scenario name and scenario
     """
-    extensions = get_extensions(
-        named_base_scenarios(preferred_tool_backend=preferred_tool_backend)
-    )
+    extensions = get_extensions(named_base_scenarios(preferred_tool_backend=preferred_tool_backend))
     # All scenarios in this module should be single user turn, single tool. Add these categories if they aren't there
     for extension in extensions:
         for default_categories in [
@@ -1131,8 +1119,4 @@ def named_single_tool_call_scenarios(
         ]:
             if default_categories not in extension.categories:
                 extension.categories.append(default_categories)
-    return {
-        key: scenario
-        for extension in extensions
-        for key, scenario in extension.get_extended_scenario().items()
-    }
+    return {key: scenario for extension in extensions for key, scenario in extension.get_extended_scenario().items()}

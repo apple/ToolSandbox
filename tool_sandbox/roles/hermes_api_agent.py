@@ -64,10 +64,7 @@ def _extract_tools_string(tools: list[ChatCompletionToolParam]) -> str:
 
 def _create_system_message(prompt_templates: dict[str, str], tools: str) -> str:
     system_prompt = ""
-    system_prompt += (
-        prompt_templates["system"].format(**{"tools": tools}).strip().replace("\n", " ")
-        + "\n"
-    )
+    system_prompt += prompt_templates["system"].format(**{"tools": tools}).strip().replace("\n", " ") + "\n"
     system_prompt += prompt_templates["system_tool_call_example"].strip()
 
     return system_prompt
@@ -141,11 +138,12 @@ def _create_prompt(
     openai_tools: list[ChatCompletionToolParam],
     add_generation_token: bool,
 ) -> str:
-    """Creates completion prompt for hermes from a given request
+    """Creates completion prompt for hermes from a given request.
 
     Args:
         prompt_templates: The predefined prompt templates
-        request: The request
+        openai_messages: The OpenAI messages
+        openai_tools: The OpenAI tools
         add_generation_token: A flag to denote if the generation triggering token should be
                               added.
 
@@ -168,20 +166,18 @@ def _create_prompt(
 
 
 def to_chat_completion_message(choice: CompletionChoice) -> ChatCompletionMessage:
-    """Parses the response text and construct a chat completion message including the tool calls
-    from the response.
+    """Parses the response text and construct a chat completion message including the tool calls from the response.
 
     Args:
-        text:
+        choice: The completion choice.
 
     Returns:
-        A chat completion message containing the tool calls."""
+        A chat completion message containing the tool calls.
+    """
 
     def _convert_tool(tool: dict[str, Any], idx: int) -> ChatCompletionMessageToolCall:
         function = Function(name=tool["name"], arguments=json.dumps(tool["arguments"]))
-        return ChatCompletionMessageToolCall(
-            id=f"call_{idx}", function=function, type="function"
-        )
+        return ChatCompletionMessageToolCall(id=f"call_{idx}", function=function, type="function")
 
     text = choice.text
 
@@ -206,20 +202,15 @@ def to_chat_completion_message(choice: CompletionChoice) -> ChatCompletionMessag
         content = text
 
     tool_calls = [_convert_tool(t, idx) for idx, t in enumerate(tool_calls, start=1)]
-    return ChatCompletionMessage(
-        role="assistant", content=content, tool_calls=tool_calls
-    )
+    return ChatCompletionMessage(role="assistant", content=content, tool_calls=tool_calls)
 
 
 def completion_to_chat_completion(response: Completion) -> ChatCompletion:
     """Convert the `Completion` to a `ChatCompletion` object with tool calls."""
+    assert len(response.choices) > 0, f"The `choices` list of the response must not be empty:\n{response}"
     assert (
-        len(response.choices) > 0
-    ), f"The `choices` list of the response must not be empty:\n{response}"
-    assert len(response.choices) == 1, (
-        f"Only a single choice is currently supported but got {len(response.choices)}:"
-        f"\n{response}"
-    )
+        len(response.choices) == 1
+    ), f"Only a single choice is currently supported but got {len(response.choices)}:\n{response}"
     choices = [
         Choice(
             finish_reason=response.choices[0].finish_reason,
@@ -245,12 +236,11 @@ class HermesAPIAgent(BaseRole):
     model_name: str
 
     def __init__(self, model_name: str) -> None:
+        """Initialize the Hermes API agent."""
         super().__init__()
 
         self.model_name = model_name
-        assert (
-            "OPENAI_BASE_URL" in os.environ
-        ), "The `OPENAI_BASE_URL` environment variable must be set."
+        assert "OPENAI_BASE_URL" in os.environ, "The `OPENAI_BASE_URL` environment variable must be set."
         self.client = OpenAI(api_key="EMPTY")
 
         prompts_file = os.path.join(
@@ -261,7 +251,7 @@ class HermesAPIAgent(BaseRole):
             self.prompt_templates = yaml.safe_load(file)
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
 
         Specifically, interprets system, user, execution environment messages and sends out NL response to user, or
         code snippet to execution environment.
@@ -292,22 +282,22 @@ class HermesAPIAgent(BaseRole):
         available_tool_names = set(available_tools.keys())
         openai_tools = (
             convert_to_openai_tools(available_tools)
-            if messages[-1].sender == RoleType.USER
-            or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
+            if messages[-1].sender == RoleType.USER or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
             else NOT_GIVEN
         )
         # We need a cast here since `convert_to_openai_tool` returns a plain dict, but
         # `ChatCompletionToolParam` is a `TypedDict`.
         openai_tools = cast(
-            Union[list[ChatCompletionToolParam], NotGiven],
+            "Union[list[ChatCompletionToolParam], NotGiven]",
             openai_tools,
-        )
+        )  # type: ignore
         # Convert to OpenAI messages.
         current_context = get_current_context()
         openai_messages, _ = to_openai_messages(messages)
         # Call model
         hermes_response = self.model_inference(
-            openai_messages=openai_messages, openai_tools=openai_tools
+            openai_messages=openai_messages,
+            openai_tools=openai_tools,  # type: ignore
         )
 
         # Parse response
@@ -329,11 +319,7 @@ class HermesAPIAgent(BaseRole):
             for tool_call in openai_response_message.tool_calls:
                 # The response contains the agent facing tool name so we need to get
                 # the execution facing tool name when creating the Python code.
-                execution_facing_tool_name = (
-                    current_context.get_execution_facing_tool_name(
-                        tool_call.function.name
-                    )
-                )
+                execution_facing_tool_name = current_context.get_execution_facing_tool_name(tool_call.function.name)
                 response_messages.append(
                     Message(
                         sender=self.role_type,
@@ -364,7 +350,7 @@ class HermesAPIAgent(BaseRole):
         ],
         openai_tools: Union[list[ChatCompletionToolParam], NotGiven],
     ) -> Completion:
-        """Run Hermes model inference
+        """Run Hermes model inference.
 
         Args:
             openai_messages:    List of OpenAI API format messages

@@ -41,7 +41,7 @@ def add_reminder(
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
 ) -> str:
-    """Add a reminder
+    """Add a reminder.
 
     Args:
         content:                Content of the reminder
@@ -53,7 +53,6 @@ def add_reminder(
     Returns:
         String format unique identifier for the reminder, this can be passed to other functions
         which require a unique identifier for this reminder
-
     """
     validate_timestamp(reminder_timestamp, "reminder_timestamp", float)
     validate_latitude(latitude, "latitude", Optional[float])
@@ -169,7 +168,7 @@ def search_reminder(
         Union[str, float],
     ]
 ]:
-    """Search for a reminder based on provided arguments
+    """Search for a reminder based on provided arguments.
 
     Each field has a search criteria of either
     1. Exact value matching
@@ -252,19 +251,7 @@ def search_reminder(
         ],
     )
     return cast(
-        List[
-            Dict[
-                Literal[
-                    "reminder_id",
-                    "content",
-                    "creation_timestamp",
-                    "reminder_timestamp",
-                    "latitude",
-                    "longitude",
-                ],
-                Union[str, float],
-            ]
-        ],
+        "List[Dict[Literal['reminder_id', 'content', 'creation_timestamp', 'reminder_timestamp', 'latitude', 'longitude'], Union[str, float]]]",
         reminder_dataframe.to_dicts(),
     )
 
@@ -274,7 +261,7 @@ def search_reminder(
 def remove_reminder(
     reminder_id: str,
 ) -> None:
-    """Remove a reminder given its unique identifier
+    """Remove a reminder given its unique identifier.
 
     Args:
         reminder_id:    String format unique identifier of the reminder to be removed
@@ -285,7 +272,6 @@ def remove_reminder(
 
     Raises:
         NoDataError:    If the provided reminder_id was not found
-
     """
     current_context = get_current_context()
     current_context.remove_from_database(

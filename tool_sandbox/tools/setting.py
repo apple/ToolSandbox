@@ -16,14 +16,11 @@ from tool_sandbox.common.validators import validate_type
 
 
 def set_boolean_settings(setting_name: str, on: bool) -> None:
-    """Utility function for setting boolean settings. DO NOT expose this as a tool
+    """Utility function for setting boolean settings. DO NOT expose this as a tool.
 
     Args:
         setting_name:       Name of the settings column
         on:                 Whether to turn on or off
-
-    Returns:
-
     """
     validate_type(setting_name, "setting_name", str)
     validate_type(on, "on", bool)
@@ -41,13 +38,13 @@ def set_boolean_settings(setting_name: str, on: bool) -> None:
 
 
 def get_boolean_settings(setting_name: str) -> bool:
-    """Utility function for getting boolean settings. DO NOT expose this as a tool
+    """Utility function for getting boolean settings. DO NOT expose this as a tool.
 
     Args:
         setting_name:       Name of the settings column
 
     Returns:
-
+        The current value of the setting
     """
     validate_type(setting_name, "setting_name", str)
 
@@ -55,17 +52,15 @@ def get_boolean_settings(setting_name: str) -> bool:
     setting_database = current_context.get_database(DatabaseNamespace.SETTING)
     if setting_database.schema.get(setting_name, pl.Null) != pl.Boolean:
         raise KeyError(f"{setting_name} is not a boolean column")
-    return cast(bool, setting_database[setting_name][0])
+    return cast("bool", setting_database[setting_name][0])
 
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 def set_low_battery_mode_status(on: bool) -> None:
-    """Enable / Disable low battery mode
+    """Enable / Disable low battery mode.
 
     Args:
         on: If we want to turn on low battery mode
-
-    Returns:
 
     Raises:
         ValueError: If low battery mode is already turned on / off
@@ -76,7 +71,7 @@ def set_low_battery_mode_status(on: bool) -> None:
     # Automatically turn off other dependent services if low battery mode is on
     if on:
         for dependent_setting in ["cellular", "wifi", "location_service"]:
-            try:
+            try:  # noqa: SIM105
                 set_boolean_settings(dependent_setting, on=False)
             except ValueError:
                 pass
@@ -84,7 +79,7 @@ def set_low_battery_mode_status(on: bool) -> None:
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 def get_low_battery_mode_status() -> bool:
-    """Request low battery mode status
+    """Request low battery mode status.
 
     Returns:
         Boolean indicating if the low battery mode is on
@@ -94,27 +89,23 @@ def get_low_battery_mode_status() -> bool:
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 def set_location_service_status(on: bool) -> None:
-    """Enable / Disable location service
+    """Enable / Disable location service.
 
     Args:
         on: If we want to turn on location service
-
-    Returns:
 
     Raises:
         ValueError:         If location service is already turned on / off
         PermissionError:    If low battery mode is on, in which case we are not allowed to turn on location service
     """
     if on and get_low_battery_mode_status():
-        raise PermissionError(
-            "Location service cannot be turned on in low battery mode"
-        )
+        raise PermissionError("Location service cannot be turned on in low battery mode")
     set_boolean_settings(setting_name="location_service", on=on)
 
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 def get_location_service_status() -> bool:
-    """Request location service status
+    """Request location service status.
 
     Returns:
         Boolean indicating if the location service is on
@@ -124,12 +115,10 @@ def get_location_service_status() -> bool:
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 def set_cellular_service_status(on: bool) -> None:
-    """Enable / Disable cellular service
+    """Enable / Disable cellular service.
 
     Args:
         on: If we want to turn on cellular service
-
-    Returns:
 
     Raises:
         ValueError:         If cellular service is already turned on / off
@@ -138,15 +127,13 @@ def set_cellular_service_status(on: bool) -> None:
     validate_type(on, "on", bool)
 
     if on and get_low_battery_mode_status():
-        raise PermissionError(
-            "Cellular service cannot be turned on in low battery mode"
-        )
+        raise PermissionError("Cellular service cannot be turned on in low battery mode")
     set_boolean_settings(setting_name="cellular", on=on)
 
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 def get_cellular_service_status() -> bool:
-    """Request cellular service status
+    """Request cellular service status.
 
     Returns:
         Boolean indicating if the cellular service is on
@@ -156,12 +143,10 @@ def get_cellular_service_status() -> bool:
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 def set_wifi_status(on: bool) -> None:
-    """Enable / Disable wifi
+    """Enable / Disable wifi.
 
     Args:
         on: If we want to turn on wifi
-
-    Returns:
 
     Raises:
         ValueError:         If wifi is already turned on / off
@@ -176,7 +161,7 @@ def set_wifi_status(on: bool) -> None:
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 def get_wifi_status() -> bool:
-    """Request wifi status
+    """Request wifi status.
 
     Returns:
         Boolean indicating if the wifi is on
@@ -186,7 +171,7 @@ def get_wifi_status() -> bool:
 
 @register_as_tool(visible_to=(RoleType.AGENT,))
 def get_current_location() -> Dict[Literal["latitude", "longitude"], float]:
-    """Request current location latitude and longitude
+    """Request current location latitude and longitude.
 
     Returns:
         A dictionary of latitude and longitude

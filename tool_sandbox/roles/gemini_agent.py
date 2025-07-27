@@ -35,14 +35,7 @@ def gemini_tools_from_functions(
     Returns:
       A `Tool` object that can be forwarded to the Gemini constructor or chat calls.
     """
-    return [
-        generative_models.Tool(
-            [
-                generative_models.FunctionDeclaration.from_func(fn)
-                for fn in tool_functions
-            ]
-        )
-    ]
+    return [generative_models.Tool([generative_models.FunctionDeclaration.from_func(fn) for fn in tool_functions])]
 
 
 def gemini_tools_from_openai_tools(
@@ -52,6 +45,7 @@ def gemini_tools_from_openai_tools(
 
     Args:
       openai_tools: A list of OpenAI format tools.
+
     Returns:
       A list of `Tool` objects that can be forwarded to the Gemini constructor or chat calls.
 
@@ -75,9 +69,7 @@ def gemini_tools_from_openai_tools(
                         "type": param.get("type", "object"),
                         "description": param.get("description", "No description."),
                     }
-                    for param_name, param in tool["function"]["parameters"][
-                        "properties"
-                    ].items()
+                    for param_name, param in tool["function"]["parameters"]["properties"].items()
                 },
                 "required": tool["function"]["parameters"]["required"],
             },
@@ -92,16 +84,11 @@ def extract_system_prompt_parts(
     messages: Sequence[Message],
 ) -> Optional[list[generative_models.Part]]:
     """Extract the system prompt from the given messages."""
-    system_messages = [
-        message for message in messages if message.sender == RoleType.SYSTEM
-    ]
+    system_messages = [message for message in messages if message.sender == RoleType.SYSTEM]
     if len(system_messages) == 0:
         return None
 
-    return [
-        generative_models.Part.from_text(system_message.content)
-        for system_message in system_messages
-    ]
+    return [generative_models.Part.from_text(system_message.content) for system_message in system_messages]
 
 
 class GeminiAgent(BaseRole):
@@ -112,14 +99,13 @@ class GeminiAgent(BaseRole):
 
     role_type: RoleType = RoleType.AGENT
 
-    def __init__(self, model_name: str = "gemini-1.5-pro-preview-0409"):
+    def __init__(self, model_name: str = "gemini-1.5-pro-preview-0409") -> None:
         """Gemini agent.
+
         Args:
           model_name: The model name to use.
         """
-        assert (
-            "GOOGLE_CLOUD_PROJECT" in os.environ or "CLOUD_ML_PROJECT_ID" in os.environ
-        ), (
+        assert "GOOGLE_CLOUD_PROJECT" in os.environ or "CLOUD_ML_PROJECT_ID" in os.environ, (
             "The `GOOGLE_CLOUD_PROJECT` or `CLOUD_ML_PROJECT_ID` environment variable "
             "must be set for specifying the project."
         )
@@ -130,9 +116,7 @@ class GeminiAgent(BaseRole):
         vertexai.init()
         self.model_name = model_name
         # Make the behavior of the model as deterministic as possible.
-        self.generation_config = generative_models.GenerationConfig(
-            temperature=0.0, top_k=1, candidate_count=1
-        )
+        self.generation_config = generative_models.GenerationConfig(temperature=0.0, top_k=1, candidate_count=1)
         self.reset()
 
     def reset(self) -> None:
@@ -140,9 +124,15 @@ class GeminiAgent(BaseRole):
         self.model: Optional[generative_models.GenerativeModel] = None
         self.chat: Optional[generative_models.ChatSession] = None
 
-    def gemini_response_to_tool_sandbox_messages(
-        self, response: generative_models.GenerationResponse
-    ) -> list[Message]:
+    def gemini_response_to_tool_sandbox_messages(self, response: generative_models.GenerationResponse) -> list[Message]:
+        """Parse model response and convert into a sandbox message.
+
+        Args:
+            response: The model response.
+
+        Returns:
+            A list of sandbox messages.
+        """
         # Parse model response and convert into a sandbox message.
         assert len(response.candidates) == 1, (
             f"Response contains {len(response.candidates)} candidates, but only a "
@@ -178,9 +168,7 @@ class GeminiAgent(BaseRole):
         # ignore the text. Note that unlike the Anthropic API there is no explicit tool
         # use stop reason so instead we just check if there are any function calls in
         # the response.
-        function_call_parts = [
-            part for part in candidate.content.parts if part.function_call
-        ]
+        function_call_parts = [part for part in candidate.content.parts if part.function_call]
         if len(function_call_parts) > 0:
             # Note that `function_call` is using the agent facing tool names so we need
             # to get the execution facing tool name.
@@ -190,9 +178,7 @@ class GeminiAgent(BaseRole):
                     sender=self.role_type,
                     recipient=RoleType.EXECUTION_ENVIRONMENT,
                     content=self.gemini_tool_call_to_python_code(
-                        function_name=current_context.get_execution_facing_tool_name(
-                            part.function_call.name
-                        ),
+                        function_name=current_context.get_execution_facing_tool_name(part.function_call.name),
                         part=part,
                     ),
                     openai_function_name=part.function_call.name,
@@ -206,11 +192,7 @@ class GeminiAgent(BaseRole):
             ]
 
         # Message contains no tool call, therefore is addressed to the user.
-        return [
-            Message(
-                sender=self.role_type, recipient=RoleType.USER, content=response.text
-            )
-        ]
+        return [Message(sender=self.role_type, recipient=RoleType.USER, content=response.text)]
 
     def _initialize_chat_session(self, messages: Sequence[Message]) -> None:
         """Initialize a chat session.
@@ -229,9 +211,7 @@ class GeminiAgent(BaseRole):
         # assumption here is that we have at most one message from a sender other than
         # the system role and if present, it is the final message (which is being
         # processed in the `respond` function and not here).
-        non_system_messages = [
-            message for message in messages if message.sender != RoleType.SYSTEM
-        ]
+        non_system_messages = [message for message in messages if message.sender != RoleType.SYSTEM]
         assert len(non_system_messages) <= 1, (
             "Initializing the chat session with a history is not supported. Expected "
             f"to have at most one message from a sender other than {RoleType.SYSTEM} "
@@ -280,7 +260,7 @@ class GeminiAgent(BaseRole):
         if self.model is None:
             assert self.chat is None
             self._initialize_chat_session(messages)
-        assert self.model is not None and self.chat is not None
+        assert self.model is not None and self.chat is not None  # noqa: PT018
 
         if messages[-1].sender == RoleType.SYSTEM:
             # Do not respond to messages sent by the system role.
@@ -290,8 +270,7 @@ class GeminiAgent(BaseRole):
         available_tools = self.get_available_tools()
         openai_tools = (
             convert_to_openai_tools(available_tools)
-            if messages[-1].sender == RoleType.USER
-            or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
+            if messages[-1].sender == RoleType.USER or messages[-1].sender == RoleType.EXECUTION_ENVIRONMENT
             else []
         )
         # Note: this simpler call currently doesn't work will all local tools.
@@ -303,9 +282,7 @@ class GeminiAgent(BaseRole):
         gemini_messages = self.to_gemini_messages(messages=messages)
 
         # Call model.
-        response = self.model_inference(
-            gemini_messages=gemini_messages[-1], gemini_tools=gemini_tools
-        )
+        response = self.model_inference(gemini_messages=gemini_messages[-1], gemini_tools=gemini_tools)
 
         response_messages = self.gemini_response_to_tool_sandbox_messages(response)
         self.add_messages(response_messages)
@@ -332,10 +309,8 @@ class GeminiAgent(BaseRole):
         assert self.chat is not None
         return self.chat.send_message(gemini_messages, tools=gemini_tools)
 
-    def to_gemini_messages(
-        self, messages: List[Message]
-    ) -> list[generative_models.Content]:
-        """Converts a list of Tool Sandbox messages to Gemini API messages
+    def to_gemini_messages(self, messages: List[Message]) -> list[generative_models.Content]:
+        """Converts a list of Tool Sandbox messages to Gemini API messages.
 
         Args:
             messages:   A list of Tool Sandbox messages
@@ -365,25 +340,13 @@ class GeminiAgent(BaseRole):
 
         gemini_messages: list[generative_models.Content] = []
         for message in messages:
-            if (
-                message.sender == RoleType.SYSTEM
-                and message.recipient == RoleType.AGENT
-            ):
+            if message.sender == RoleType.SYSTEM and message.recipient == RoleType.AGENT:
                 parts = [generative_models.Part.from_text(message.content)]
-                gemini_messages.append(
-                    generative_models.Content(role="system", parts=parts)
-                )
-            elif (
-                message.sender == RoleType.USER and message.recipient == RoleType.AGENT
-            ):
+                gemini_messages.append(generative_models.Content(role="system", parts=parts))
+            elif message.sender == RoleType.USER and message.recipient == RoleType.AGENT:
                 parts = [generative_models.Part.from_text(message.content)]
-                gemini_messages.append(
-                    generative_models.Content(role="user", parts=parts)
-                )
-            elif (
-                message.sender == RoleType.EXECUTION_ENVIRONMENT
-                and message.recipient == RoleType.AGENT
-            ):
+                gemini_messages.append(generative_models.Content(role="user", parts=parts))
+            elif message.sender == RoleType.EXECUTION_ENVIRONMENT and message.recipient == RoleType.AGENT:
                 assert message.openai_function_name is not None, message
                 function_response_part = generative_models.Part.from_function_response(
                     name=message.openai_function_name,
@@ -400,7 +363,7 @@ class GeminiAgent(BaseRole):
                     # As a workaround we create a new message.
                     gemini_messages[-1] = generative_models.Content(
                         role="tool",
-                        parts=gemini_messages[-1].parts + [function_response_part],
+                        parts=gemini_messages[-1].parts + [function_response_part],  # noqa: RUF005
                     )
                 else:
                     # Create a new message.
@@ -411,34 +374,22 @@ class GeminiAgent(BaseRole):
                         )
                     )
                     combine_tool_response = True
-            elif (
-                message.sender == RoleType.AGENT
-                and message.recipient == RoleType.EXECUTION_ENVIRONMENT
-            ):
+            elif message.sender == RoleType.AGENT and message.recipient == RoleType.EXECUTION_ENVIRONMENT:
                 # A tool call request from the agent to the execution environment means
                 # that coming tool responses should not be combined with the last tool
                 # response. This is only meant for parallel tool calls and we are now
                 # issuing a new tool call request.
                 combine_tool_response = False
-            elif (
-                message.sender == RoleType.AGENT and message.recipient == RoleType.USER
-            ):
+            elif message.sender == RoleType.AGENT and message.recipient == RoleType.USER:
                 parts = [generative_models.Part.from_text(message.content)]
-                gemini_messages.append(
-                    generative_models.Content(role="assistant", parts=parts)
-                )
+                gemini_messages.append(generative_models.Content(role="assistant", parts=parts))
             else:
-                raise ValueError(
-                    f"Unrecognized sender recipient pair {(message.sender, message.recipient)}"
-                )
+                raise ValueError(f"Unrecognized sender recipient pair {(message.sender, message.recipient)}")
 
         return gemini_messages
 
-    def gemini_tool_call_to_python_code(
-        self, function_name: str, part: generative_models.Part
-    ) -> str:
+    def gemini_tool_call_to_python_code(self, function_name: str, part: generative_models.Part) -> str:
         """Call a python tool with the parameters from the model response."""
-
         potentially_scrambled_function_name = part.function_call.name
 
         # Check if function name is a known allowed tool.

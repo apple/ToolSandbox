@@ -1,6 +1,6 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Few shot examples for user simulator"""
+"""Few shot examples for user simulator."""
 
 from textwrap import dedent
 from typing import Any
@@ -36,7 +36,7 @@ USER_INSTRUCTION = dedent(
 
 
 def named_user_simulator_few_shot_examples() -> dict[str, list[dict[str, Any]]]:
-    """Instantiates example name and lists of example messages
+    """Instantiates example name and lists of example messages.
 
     Even though not explicitly documented, we found that providing
     few-shot examples, each with their own system prompt works reasonably well
@@ -55,8 +55,7 @@ def named_user_simulator_few_shot_examples() -> dict[str, list[dict[str, Any]]]:
             {
                 "sender": RoleType.SYSTEM,
                 "recipient": RoleType.USER,
-                "content": USER_INSTRUCTION
-                + "Find the content of your (User A's) oldest message",
+                "content": USER_INSTRUCTION + "Find the content of your (User A's) oldest message",
                 "visible_to": [RoleType.USER],
             },
             {
@@ -149,8 +148,7 @@ def named_user_simulator_few_shot_examples() -> dict[str, list[dict[str, Any]]]:
             {
                 "sender": RoleType.SYSTEM,
                 "recipient": RoleType.USER,
-                "content": USER_INSTRUCTION
-                + "Delete a contact by phone number +13493028493.",
+                "content": USER_INSTRUCTION + "Delete a contact by phone number +13493028493.",
                 "visible_to": [RoleType.USER],
             },
             {
@@ -201,8 +199,7 @@ def named_user_simulator_few_shot_examples() -> dict[str, list[dict[str, Any]]]:
             {
                 "sender": RoleType.SYSTEM,
                 "recipient": RoleType.USER,
-                "content": USER_INSTRUCTION
-                + "Send a message to Bart saying: Hey what's up.",
+                "content": USER_INSTRUCTION + "Send a message to Bart saying: Hey what's up.",
                 "visible_to": [RoleType.USER],
             },
             {
@@ -407,8 +404,7 @@ def named_user_simulator_few_shot_examples() -> dict[str, list[dict[str, Any]]]:
     }
     for example in examples.values():
         for message in example:
-            assert message["visible_to"] == [RoleType.USER], (
-                f"User simulator messages should only be visible to {[RoleType.USER]}. "
-                f"Found {message['visible_to']}"
-            )
+            assert message["visible_to"] == [
+                RoleType.USER
+            ], f"User simulator messages should only be visible to {[RoleType.USER]}. Found {message['visible_to']}"
     return examples

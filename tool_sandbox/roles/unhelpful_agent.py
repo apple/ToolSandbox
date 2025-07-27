@@ -20,7 +20,7 @@ class UnhelpfulAgent(BaseRole):
     role_type: RoleType = RoleType.AGENT
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
 
         Args:
             ending_index:   Optional index. Will respond to message located at ending_index instead of most recent one

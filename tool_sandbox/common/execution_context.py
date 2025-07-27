@@ -1,7 +1,7 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""WARNING: This is not thread safe! For thread safety we'll need to implement something similar to
-axlearn's InvocationContext
+"""WARNING: This is not thread safe! For thread safety we'll need to implement something similar to axlearn's InvocationContext.
+
 https://github.com/apple/axlearn/blob/c84f50e6cba467ce5c2096d0cba3dce4c73f897a/axlearn/common/module.py#L140-L153
 
 We are effectively implementing Singleton OOP behavior in procedural programming paradigm,
@@ -17,12 +17,11 @@ import copy
 import uuid
 from enum import auto
 from logging import getLogger
-from typing import Any, Callable, Iterator, Literal, Optional, cast
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Iterator, Literal, Optional, cast
 
 import dill  # type: ignore[import-untyped]
 import polars as pl
 from polars.exceptions import NoDataError
-from polars.type_aliases import IntoExprColumn
 from strenum import StrEnum
 
 from tool_sandbox.common.tool_discovery import (
@@ -31,19 +30,23 @@ from tool_sandbox.common.tool_discovery import (
     get_scrambled_tool_names,
 )
 
+if TYPE_CHECKING:
+    from polars.type_aliases import IntoExprColumn
+
 
 class DatabaseNamespace(StrEnum):
-    """Namespace for each database"""
+    """Namespace for each database."""
 
     SANDBOX = auto()
     SETTING = auto()
     CONTACT = auto()
     MESSAGING = auto()
     REMINDER = auto()
+    MAP = auto()
 
 
 class RoleType(StrEnum):
-    """Types of roles available in the sandbox"""
+    """Types of roles available in the sandbox."""
 
     SYSTEM = auto()
     USER = auto()
@@ -52,7 +55,7 @@ class RoleType(StrEnum):
 
 
 class ScenarioCategories(StrEnum):
-    """Categorical enum describing scenarios. Each scenario can belong to multiple categories"""
+    """Categorical enum describing scenarios. Each scenario can belong to multiple categories."""
 
     # Scenario that requires a single tool call to complete
     SINGLE_TOOL_CALL = auto()
@@ -134,18 +137,18 @@ class ExecutionContext:
     # Database schema. Declared as class attributes so that it could be available prior to init
     # As you add more databases / columns, remember to also add their default similarity measure to
     # tool_sandbox.common.evaluation._default_dbs_column_similarities
-    dbs_schemas: dict[DatabaseNamespace, dict[str, Any]] = {
+    dbs_schemas: ClassVar[dict[DatabaseNamespace, dict[str, Any]]] = {
         DatabaseNamespace.SANDBOX: {
             "sandbox_message_index": pl.Int32,
-            "sender": pl.Enum([x for x in RoleType]),
-            "recipient": pl.Enum([x for x in RoleType]),
+            "sender": pl.Enum([x for x in RoleType]),  # noqa: C416
+            "recipient": pl.Enum([x for x in RoleType]),  # noqa: C416
             "content": pl.String,
             "openai_tool_call_id": pl.String,
             "openai_function_name": pl.String,
             "conversation_active": pl.Boolean,
             "tool_call_exception": pl.String,
             "tool_trace": pl.List(pl.String),
-            "visible_to": pl.List(pl.Enum([x for x in RoleType])),
+            "visible_to": pl.List(pl.Enum([x for x in RoleType])),  # noqa: C416
         },
         DatabaseNamespace.SETTING: {
             "sandbox_message_index": pl.Int32,
@@ -184,6 +187,15 @@ class ExecutionContext:
             "latitude": pl.Float64,
             "longitude": pl.Float64,
         },
+        # Add a maps database
+        DatabaseNamespace.MAP: {
+            "sandbox_message_index": pl.Int32,
+            "latitude": pl.Float64,  # maybe not needed
+            "longitude": pl.Float64,  # maybe not needed
+            "location_id": pl.String,
+            "name": pl.String,
+            "description": pl.String,
+        },
     }
 
     def __init__(
@@ -192,8 +204,8 @@ class ExecutionContext:
         tool_deny_list: Optional[list[str]] = None,
         tool_augmentation_list: Optional[list[TOOL_AUGMENTATION_TYPE]] = None,
         preferred_tool_backend: ToolBackend = ToolBackend.DEFAULT,
-    ):
-        """Init function for ExecutionContext
+    ) -> None:
+        """Init function for ExecutionContext.
 
         Args:
             tool_allow_list:            Override the default init values for self.tool_allow_list.
@@ -204,24 +216,17 @@ class ExecutionContext:
         # Each database starts with a full null headguard except on "sandbox_message_index" column, which is set to 0.
         self._dbs: dict[str, pl.DataFrame] = {
             namespace: pl.DataFrame(
-                {
-                    k: None if k != "sandbox_message_index" else 0
-                    for k in self.dbs_schemas[namespace]
-                },
+                {k: None if k != "sandbox_message_index" else 0 for k in self.dbs_schemas[namespace]},
                 schema=self.dbs_schemas[namespace],
             )
             for namespace in self.dbs_schemas
         }
         # Add default settings database state
-        self._dbs[DatabaseNamespace.SETTING] = self._dbs[
-            DatabaseNamespace.SETTING
-        ].vstack(
+        self._dbs[DatabaseNamespace.SETTING] = self._dbs[DatabaseNamespace.SETTING].vstack(
             pl.DataFrame(
                 {
                     "sandbox_message_index": 0,
-                    "device_id": str(
-                        uuid.uuid5(namespace=uuid.NAMESPACE_URL, name="my_phone")
-                    ),
+                    "device_id": str(uuid.uuid5(namespace=uuid.NAMESPACE_URL, name="my_phone")),
                     "cellular": True,
                     "wifi": True,
                     "location_service": True,
@@ -249,22 +254,16 @@ class ExecutionContext:
 
         self.name_to_tool = get_all_tools(self.preferred_tool_backend)
         # Compute the scrambled tool names.
-        self._actual_to_scrambled_tool_name = get_scrambled_tool_names(
-            self.name_to_tool.values()
-        )
+        self._actual_to_scrambled_tool_name = get_scrambled_tool_names(self.name_to_tool.values())
         # If multiple tools had the same function name then the dictionary would have
         # fewer elements. Unique tool names are already enforced in
         # `find_tools_by_module`, but just to be defensive we assert that here as well.
         assert len(self.name_to_tool) == len(self._actual_to_scrambled_tool_name)
-        self._scrambled_to_actual_tool_name = {
-            v: k for k, v in self._actual_to_scrambled_tool_name.items()
-        }
+        self._scrambled_to_actual_tool_name = {v: k for k, v in self._actual_to_scrambled_tool_name.items()}
         # Consistency check since theoretically multiple tools could have the same
         # scrambled name meaning that entries in `scrambled_to_actual_tool_name` would
         # be overwritten.
-        assert len(self._actual_to_scrambled_tool_name) == len(
-            self._scrambled_to_actual_tool_name
-        )
+        assert len(self._actual_to_scrambled_tool_name) == len(self._scrambled_to_actual_tool_name)
 
     def get_agent_facing_tool_name(self, tool_name: str) -> str:
         """Get the agent facing tool name.
@@ -331,19 +330,13 @@ class ExecutionContext:
             if (self.tool_allow_list is None or name in self.tool_allow_list)
             and (self.tool_deny_list is None or name not in self.tool_deny_list)
         }
-        if (
-            not scrambling_allowed
-            or ScenarioCategories.TOOL_NAME_SCRAMBLED not in self.tool_augmentation_list
-        ):
+        if not scrambling_allowed or ScenarioCategories.TOOL_NAME_SCRAMBLED not in self.tool_augmentation_list:
             return name_to_tool
 
-        return {
-            self.get_agent_facing_tool_name(name): tool
-            for name, tool in name_to_tool.items()
-        }
+        return {self.get_agent_facing_tool_name(name): tool for name, tool in name_to_tool.items()}
 
     def to_dict(self, serialize_console: bool = True) -> dict[str, Any]:
-        """Serializes to a dictionary
+        """Serializes to a dictionary.
 
         We aim to make this serialization reversible, while still somewhat readable.
 
@@ -355,13 +348,8 @@ class ExecutionContext:
             A serialized dict.
         """
         return {
-            "_dbs": {
-                namespace: database.to_dicts()
-                for namespace, database in self._dbs.items()
-            },
-            "interactive_console": dill.dumps(self.interactive_console)
-            if serialize_console
-            else None,
+            "_dbs": {namespace: database.to_dicts() for namespace, database in self._dbs.items()},
+            "interactive_console": dill.dumps(self.interactive_console) if serialize_console else None,
             "tool_allow_list": self.tool_allow_list,
             "tool_deny_list": self.tool_deny_list,
             "trace_tool": self.trace_tool,
@@ -399,13 +387,10 @@ class ExecutionContext:
         execution_context.trace_tool = serialized_dict["trace_tool"]
         # Load tool_augmentation_list
         execution_context.tool_augmentation_list = [
-            cast(TOOL_AUGMENTATION_TYPE, ScenarioCategories[x])
-            for x in serialized_dict["tool_augmentation_list"]
+            cast("TOOL_AUGMENTATION_TYPE", ScenarioCategories[x]) for x in serialized_dict["tool_augmentation_list"]
         ]
         # Load preferred_tool_backend
-        execution_context.preferred_tool_backend = serialized_dict[
-            "preferred_tool_backend"
-        ]
+        execution_context.preferred_tool_backend = serialized_dict["preferred_tool_backend"]
         return execution_context
 
     def __deepcopy__(self, memo: dict[int, Any]) -> ExecutionContext:
@@ -413,11 +398,11 @@ class ExecutionContext:
         # library. `dill` adds support for pickling additional Python objects so it can
         # successfully copy an `InteractiveConsole`. Note that `dill.copy` performs a
         # deep copy.
-        return cast(ExecutionContext, dill.copy(self))
+        return cast("ExecutionContext", dill.copy(self))
 
     @staticmethod
     def headguard_predicate(column_names: set[str]) -> pl.Expr:
-        """A polars expression matching headguard rows
+        """A polars expression matching headguard rows.
 
         Specifically this looks for rows where all columns expect "sandbox_message_index" are None
 
@@ -428,15 +413,12 @@ class ExecutionContext:
         """
         # Hacky way to make bitwise and work in a loop
         return pl.lit(True).and_(
-            *[
-                pl.col(column_name).is_null()
-                for column_name in (column_names - {"sandbox_message_index"})
-            ]
+            *[pl.col(column_name).is_null() for column_name in (column_names - {"sandbox_message_index"})]
         )
 
     @classmethod
     def drop_headguard(cls, dataframe: pl.DataFrame) -> pl.DataFrame:
-        """Drops the all None headguard row
+        """Drops the all None headguard row.
 
         Args:
             dataframe:  Dataframe to drop headguard row from. Usually a snapshot or multiple snapshots
@@ -444,23 +426,19 @@ class ExecutionContext:
         Returns:
             Dataframe with headguard dropped.
         """
-        return dataframe.filter(
-            ~cls.headguard_predicate(column_names=set(dataframe.columns))
-        )
+        return dataframe.filter(~cls.headguard_predicate(column_names=set(dataframe.columns)))
 
     @property
     def max_sandbox_message_index(self) -> int:
-        """Get the current max_sandbox_index, returns -1 when no messages exist
+        """Get the current max_sandbox_index, returns -1 when no messages exist.
 
         Returns:
-
+            The current max_sandbox_index, returns -1 when no messages exist.
         """
-        series = self.drop_headguard(self._dbs[DatabaseNamespace.SANDBOX]).get_column(
-            "sandbox_message_index"
-        )
+        series = self.drop_headguard(self._dbs[DatabaseNamespace.SANDBOX]).get_column("sandbox_message_index")
         if series.is_empty():
             return -1
-        return cast(int, series.max())
+        return cast("int", series.max())
 
     @property
     def first_user_sandbox_message_index(self) -> int:
@@ -471,7 +449,7 @@ class ExecutionContext:
         Snapshot at this position defines the starting world state. returns -1 if no user message was found
 
         Returns:
-
+            An integer representing the sandbox message index of the first user sent message.
         """
         user_messages_db: pl.DataFrame = self.get_database(
             namespace=DatabaseNamespace.SANDBOX,
@@ -479,19 +457,14 @@ class ExecutionContext:
             drop_sandbox_message_index=False,
         ).filter(
             (pl.col("sender") == RoleType.USER)
-            & (
-                (pl.col("visible_to") != [RoleType.USER])
-                | (pl.col("visible_to").is_null())
-            )
+            & ((pl.col("visible_to") != [RoleType.USER]) | (pl.col("visible_to").is_null()))
         )
         if user_messages_db.is_empty():
             return -1
-        return cast(int, user_messages_db["sandbox_message_index"][0])
+        return cast("int", user_messages_db["sandbox_message_index"][0])
 
-    def get_most_recent_snapshot_sandbox_message_index(
-        self, namespace: DatabaseNamespace, query_index: int
-    ) -> int:
-        """Find sandbox_message_index corresponding to the most recent snapshot no later than query_index
+    def get_most_recent_snapshot_sandbox_message_index(self, namespace: DatabaseNamespace, query_index: int) -> int:
+        """Find sandbox_message_index corresponding to the most recent snapshot no later than query_index.
 
         Args:
             namespace:      Namespace to search under
@@ -506,9 +479,7 @@ class ExecutionContext:
         # When the database is empty, default to -1
         if self.drop_headguard(self._dbs[namespace]).is_empty():
             return -1
-        snapshot_indices = (
-            self._dbs[namespace].get_column("sandbox_message_index").unique()
-        ).sort()
+        snapshot_indices = (self._dbs[namespace].get_column("sandbox_message_index").unique()).sort()
         # Maximum legal index for any database to have is max_sandbox + 1. Since database could be adding entry
         # corresponding to the current message being processed, which haven't been added to the SANDBOX database
         max_index = self.max_sandbox_message_index + 1
@@ -519,32 +490,21 @@ class ExecutionContext:
             )
         # Find most recent snapshot no later than query_index
         # If out of bounds, default to first available snapshot, which should always be 0 due to default headguard
-        idx = snapshot_indices[
-            max((bisect.bisect(a=snapshot_indices, x=query_index) - 1), 0)
-        ]
-        return cast(int, idx)
+        idx = snapshot_indices[max((bisect.bisect(a=snapshot_indices, x=query_index) - 1), 0)]
+        return cast("int", idx)
 
     def _maybe_create_snapshot(self, namespace: DatabaseNamespace) -> None:
-        """If db snapshot under namespace that links to max_sandbox_message_index + 1 doesn't exist, create one
+        """If db snapshot under namespace that links to max_sandbox_message_index + 1 doesn't exist, create one.
 
         Args:
             namespace:                      Namespace to create snapshot under
-
-        Returns:
-
         """
         max_sandbox_message_index = self.max_sandbox_message_index
-        if (
-            self._dbs[namespace]
-            .filter(pl.col("sandbox_message_index") == max_sandbox_message_index + 1)
-            .is_empty()
-        ):
+        if self._dbs[namespace].filter(pl.col("sandbox_message_index") == max_sandbox_message_index + 1).is_empty():
             most_recent_index = self.get_most_recent_snapshot_sandbox_message_index(
                 namespace, max_sandbox_message_index
             )
-            most_recent_snapshot = self._dbs[namespace].filter(
-                pl.col("sandbox_message_index") == most_recent_index
-            )
+            most_recent_snapshot = self._dbs[namespace].filter(pl.col("sandbox_message_index") == most_recent_index)
             # Update sandbox_message_index and stack the new snapshot at the end of database
             self._dbs[namespace] = self._dbs[namespace].vstack(
                 most_recent_snapshot.with_columns(
@@ -562,7 +522,7 @@ class ExecutionContext:
         drop_sandbox_message_index: bool = True,
         drop_headguard: bool = True,
     ) -> pl.DataFrame:
-        """Get a database given the namespace and sandbox_message_index
+        """Get a database given the namespace and sandbox_message_index.
 
         By default, gets the most recent database snapshot. When sandbox_message_index is provided,
         find the most recent snapshot no later than sandbox_message_index
@@ -589,9 +549,7 @@ class ExecutionContext:
         """
         if sandbox_message_index is None:
             sandbox_message_index = self.max_sandbox_message_index + 1
-        snapshot_target_index = self.get_most_recent_snapshot_sandbox_message_index(
-            namespace, sandbox_message_index
-        )
+        snapshot_target_index = self.get_most_recent_snapshot_sandbox_message_index(namespace, sandbox_message_index)
         predicate = (
             pl.col("sandbox_message_index") <= snapshot_target_index
             if get_all_history_snapshots
@@ -609,7 +567,7 @@ class ExecutionContext:
         namespace: DatabaseNamespace,
         rows: list[dict[str, Any]],
     ) -> None:
-        """Add multiple rows to a database
+        """Add multiple rows to a database.
 
         If namespace != SANDBOX:
 
@@ -625,15 +583,13 @@ class ExecutionContext:
             namespace:                      Database namespace
             rows:                           List of rows to be added, each item should be a Dict of column and value
 
-        Returns:
-
         Raises:
             KeyError:   When provided column names in rows does not match given schema
             ValueError: When entry is all None. All None is reserved for headguard
-
         """
         # Check if column name in rows are found in namespace schema
-        rows_column_names = {x for row in rows for x in row.keys()}
+        # ! replace key in row.keys() with key in row
+        rows_column_names = {x for row in rows for x in row}
         schema_column_names = set(self.dbs_schemas[namespace].keys())
         if rows_column_names - schema_column_names:
             raise KeyError(
@@ -646,9 +602,7 @@ class ExecutionContext:
                 row[column_name] is None if column_name in row else True
                 for column_name in schema_column_names - {"sandbox_message_index"}
             ):
-                raise ValueError(
-                    "Cannot add row with all None values. All None values are reserved for headguard"
-                )
+                raise ValueError("Cannot add row with all None values. All None values are reserved for headguard")
         rows = copy.deepcopy(rows)
         if namespace != DatabaseNamespace.SANDBOX:
             self._maybe_create_snapshot(namespace)
@@ -660,30 +614,23 @@ class ExecutionContext:
             previous_conversation_active = (
                 True
                 if self.get_database(DatabaseNamespace.SANDBOX).is_empty()
-                else self.get_database(DatabaseNamespace.SANDBOX)[
-                    "conversation_active"
-                ][-1]
+                else self.get_database(DatabaseNamespace.SANDBOX)["conversation_active"][-1]
             )
             current_sandbox_message_index = self.max_sandbox_message_index + 1
             for row in rows:
                 row["sandbox_message_index"] = current_sandbox_message_index
-                if (
-                    "conversation_active" not in row
-                    or row["conversation_active"] is None
-                ):
+                if "conversation_active" not in row or row["conversation_active"] is None:
                     row["conversation_active"] = previous_conversation_active
                 previous_conversation_active = row["conversation_active"]
                 current_sandbox_message_index += 1
-        self._dbs[namespace] = self._dbs[namespace].vstack(
-            pl.DataFrame(rows, schema=self.dbs_schemas[namespace])
-        )
+        self._dbs[namespace] = self._dbs[namespace].vstack(pl.DataFrame(rows, schema=self.dbs_schemas[namespace]))
 
     def remove_from_database(
         self,
         namespace: DatabaseNamespace,
         predicate: IntoExprColumn,
     ) -> None:
-        """Remove multiple rows from a database
+        """Remove multiple rows from a database.
 
         Assumes that the operation is the outcome of a message that's being processed (because all messages
         already committed to the database are have finished execution). Which means we will create a snapshot if
@@ -692,8 +639,6 @@ class ExecutionContext:
         Args:
             namespace:      Database namespace
             predicate:      A polars predicate that evaluates to boolean, used to identify the rows to remove
-
-        Returns:
 
         Raises:
             NoDataError:            If no matching rows where found
@@ -709,8 +654,7 @@ class ExecutionContext:
             raise NoDataError(f"No db entry matching {predicate=} found")
         # Remove entries that match predicate, except for headguard
         self._dbs[namespace] = self._dbs[namespace].filter(
-            ~predicate
-            | self.headguard_predicate(column_names=set(self._dbs[namespace].columns))
+            ~predicate | self.headguard_predicate(column_names=set(self._dbs[namespace].columns))
         )
 
     def update_database(
@@ -718,7 +662,7 @@ class ExecutionContext:
         namespace: DatabaseNamespace,
         dataframe: pl.DataFrame,
     ) -> None:
-        """Update the current database snapshot
+        """Update the current database snapshot.
 
         When simple add / remove is not sufficient, allows user to provide a new dataframe to replace the
         most recent snapshot. sandbox_message_index is overridden based on existing snapshot index
@@ -726,9 +670,6 @@ class ExecutionContext:
         Args:
             namespace:      Database namespace
             dataframe:      Dataframe to replace the existing snapshot
-
-        Returns:
-
         """
         if namespace != DatabaseNamespace.SANDBOX:
             self._maybe_create_snapshot(namespace)
@@ -742,17 +683,12 @@ class ExecutionContext:
         ).select(self._dbs[namespace].columns)
         # Add headguard if it's not provided already
         dataframe = pl.DataFrame(
-            {
-                k: None if k != "sandbox_message_index" else sandbox_message_index
-                for k in self.dbs_schemas[namespace]
-            },
+            {k: None if k != "sandbox_message_index" else sandbox_message_index for k in self.dbs_schemas[namespace]},
             schema=self.dbs_schemas[namespace],
         ).vstack(self.drop_headguard(dataframe))
         # Update database
         self._dbs[namespace] = (
-            self._dbs[namespace]
-            .filter(pl.col("sandbox_message_index") != sandbox_message_index)
-            .vstack(dataframe)
+            self._dbs[namespace].filter(pl.col("sandbox_message_index") != sandbox_message_index).vstack(dataframe)
         )
 
 
@@ -775,11 +711,10 @@ def _create_global_execution_context() -> ExecutionContext:
 
 
 def get_current_context() -> ExecutionContext:
-    """Getter for global execution context variable
+    """Getter for global execution context variable.
 
-    Returns
+    Returns:
         global execution context object
-
     """
     # Just doing `global _global_execution_context` caused some tests to fail when
     # running them in parallel using pytest-xdist. The error was:
@@ -791,30 +726,27 @@ def get_current_context() -> ExecutionContext:
     if global_execution_context is None:
         return _create_global_execution_context()
 
-    return cast(ExecutionContext, global_execution_context)
+    return cast("ExecutionContext", global_execution_context)
 
 
 def set_current_context(execution_context: ExecutionContext) -> None:
-    """Setter for global execution context variable
+    """Setter for global execution context variable.
 
     Args:
         execution_context: new context to be applied as global execution context
-
-    Returns:
-
     """
     globals()["_global_execution_context"] = execution_context
 
 
 @contextlib.contextmanager
 def new_context(context: ExecutionContext) -> Iterator[ExecutionContext]:
-    """Handy context manager which patches _global_execution_context with context, and reverts after context exit
+    """Handy context manager which patches _global_execution_context with context, and reverts after context exit.
 
     Args:
         context:    Context to apply
 
     Returns:
-
+        The context manager.
     """
     original_context = get_current_context()
     try:
@@ -827,28 +759,23 @@ def new_context(context: ExecutionContext) -> Iterator[ExecutionContext]:
 
 
 @contextlib.contextmanager
-def new_context_with_attribute(**kwargs: Any) -> Iterator[ExecutionContext]:
-    """Handy context manager which modifies _global_execution_context given new attributes listed in kwargs,
-    and reverts after context exit
+def new_context_with_attribute(**kwargs: int) -> Iterator[ExecutionContext]:
+    """Handy context manager which modifies _global_execution_context given new attributes listed in kwargs, and reverts after context exit.
 
     Args:
         **kwargs:       Attribute name and values to override in _global_execution_context
 
     Returns:
-
+        The context manager.
     """
     original_context = get_current_context()
     # Make sure all attributes exist
-    for attribute_name, value in kwargs.items():
+    for attribute_name, value in kwargs.items():  # noqa: B007
+        # value is used within the loop
         if not hasattr(original_context, attribute_name):
-            raise AttributeError(
-                f"Execution context does not contain attribute of name {attribute_name}"
-            )
+            raise AttributeError(f"Execution context does not contain attribute of name {attribute_name}")
     # Gather original attributes
-    original_attributes = {
-        attribute_name: getattr(original_context, attribute_name)
-        for attribute_name in kwargs
-    }
+    original_attributes = {attribute_name: getattr(original_context, attribute_name) for attribute_name in kwargs}
     try:
         for attribute_name, value in kwargs.items():
             setattr(original_context, attribute_name, value)

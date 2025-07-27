@@ -40,12 +40,10 @@ def extract_scenario_results(results: dict[Any, Any]) -> pl.DataFrame:
 
 def load_result_summary(path: pathlib.Path) -> dict[str, Any]:
     """Load the contents of a `result_summary.json` file."""
-    return cast(dict[str, Any], json.load(path.open("rt")))
+    return cast("dict[str, Any]", json.load(path.open("rt")))
 
 
-def get_scenario_artifacts_path(
-    result_summary_path: pathlib.Path, *, scenario_name: str
-) -> pathlib.Path:
+def get_scenario_artifacts_path(result_summary_path: pathlib.Path, *, scenario_name: str) -> pathlib.Path:
     """Get the path to the artifacts for a specific scenario."""
     assert (
         result_summary_path.suffix == ".json"
@@ -53,11 +51,6 @@ def get_scenario_artifacts_path(
     return result_summary_path.parent / "trajectories" / scenario_name
 
 
-def get_scenario_pretty_print_path(
-    result_summary_path: pathlib.Path, *, scenario_name: str
-) -> pathlib.Path:
+def get_scenario_pretty_print_path(result_summary_path: pathlib.Path, *, scenario_name: str) -> pathlib.Path:
     """Get the path to the `pretty_print.txt` file for a specific scenario."""
-    return (
-        get_scenario_artifacts_path(result_summary_path, scenario_name=scenario_name)
-        / "pretty_print.txt"
-    )
+    return get_scenario_artifacts_path(result_summary_path, scenario_name=scenario_name) / "pretty_print.txt"

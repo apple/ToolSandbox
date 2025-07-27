@@ -1,10 +1,9 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Scenarios where user prompts and provided tools are not sufficient to complete the task
+"""Scenarios where user prompts and provided tools are not sufficient to complete the task.
 
 Used to test whether the agent understands if it has enough information to complete the task
-and catch hallucinations
-
+and catch hallucinations.
 """
 
 import json
@@ -33,7 +32,10 @@ from tool_sandbox.scenarios.user_simulator_few_shot_examples import USER_INSTRUC
 
 
 def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtension]:
-    """Specify test scenario as extensions over a base scenario
+    """Specify test scenario as extensions over a base scenario.
+
+    Args:
+        base_scenarios: The base scenarios.
 
     Returns:
         A List of ScenarioExtensions
@@ -79,9 +81,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "search_lat_lon",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -128,9 +128,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "search_lat_lon",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -139,9 +137,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
         ),
         ScenarioExtension(
             name="find_current_city_low_battery_mode_insufficient_information",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 {
                     "sender": RoleType.SYSTEM,
@@ -182,9 +178,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "search_lat_lon",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -192,9 +186,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
         ),
         ScenarioExtension(
             name="find_current_location_low_battery_mode_insufficient_information",
-            base_scenario=base_scenarios[
-                "base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"
-            ],
+            base_scenario=base_scenarios["base_low_battery_mode_on_wifi_off_location_service_off_cellular_off"],
             messages=[
                 {
                     "sender": RoleType.SYSTEM,
@@ -235,9 +227,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "search_lat_lon",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -250,8 +240,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for the lowest temperature here this Friday. "
+                    "content": USER_INSTRUCTION + "Search for the lowest temperature here this Friday. "
                     "You do not have information of current datetime or location.",
                 },
                 {
@@ -287,9 +276,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "search_weather_around_lat_lon",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -303,8 +290,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for the lowest temperature here this Friday. "
+                    "content": USER_INSTRUCTION + "Search for the lowest temperature here this Friday. "
                     "You do not have information of current datetime or location.",
                 },
                 {
@@ -340,9 +326,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "search_weather_around_lat_lon",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -390,9 +374,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "timestamp_diff",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -439,9 +421,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "timestamp_diff",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -454,8 +434,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search What's the temperature in Grand Canyon in Fahrenheit. "
+                    "content": USER_INSTRUCTION + "Search What's the temperature in Grand Canyon in Fahrenheit. "
                     "You do not have information about Grand Canyon weather.",
                 },
                 {
@@ -487,9 +466,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "unit_conversion",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -502,8 +479,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search What's the temperature in Grand Canyon in Fahrenheit. "
+                    "content": USER_INSTRUCTION + "Search What's the temperature in Grand Canyon in Fahrenheit. "
                     "You do not have information about Grand Canyon weather.",
                 },
                 {
@@ -535,9 +511,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "unit_conversion",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -584,9 +558,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "modify_contact",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -633,9 +605,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "modify_contact",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -648,8 +618,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Delete a contact by phone number +12453344098. "
+                    "content": USER_INSTRUCTION + "Delete a contact by phone number +12453344098. "
                     "You do not have any more information about that person.",
                 },
                 {
@@ -689,8 +658,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Delete a contact by phone number +12453344098. "
+                    "content": USER_INSTRUCTION + "Delete a contact by phone number +12453344098. "
                     "You do not have any more information about that person.",
                 },
                 {
@@ -731,8 +699,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Delete a contact by phone number +12453344098. "
+                    "content": USER_INSTRUCTION + "Delete a contact by phone number +12453344098. "
                     "You do not have any more information about that person.",
                 },
                 {
@@ -758,9 +725,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "remove_contact",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -773,8 +738,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Delete a contact by phone number +12453344098. "
+                    "content": USER_INSTRUCTION + "Delete a contact by phone number +12453344098. "
                     "You do not have any more information about that person.",
                 },
                 {
@@ -801,9 +765,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "remove_contact",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -850,9 +812,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "send_message_with_phone_number",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -898,9 +858,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "send_message_with_phone_number",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -913,8 +871,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for the distance to Golden Gate Bridge. "
+                    "content": USER_INSTRUCTION + "Search for the distance to Golden Gate Bridge. "
                     "You do not have information about current location.",
                 },
                 {
@@ -947,9 +904,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "calculate_lat_lon_distance",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -962,8 +917,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Search for the distance to Golden Gate Bridge. "
+                    "content": USER_INSTRUCTION + "Search for the distance to Golden Gate Bridge. "
                     "You do not have information about current location.",
                 },
                 {
@@ -996,9 +950,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                     "content": "calculate_lat_lon_distance",
                                 }
                             ),
-                            column_similarity_measure={
-                                "content": column_contains_similarity
-                            },
+                            column_similarity_measure={"content": column_contains_similarity},
                         )
                     ]
                 ),
@@ -1051,15 +1003,11 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                         [
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "reminder_timestamp_lowerbound": 0
-                                                },
+                                                "arguments": {"reminder_timestamp_lowerbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "reminder_timestamp_upperbound": 0
-                                                },
+                                                "arguments": {"reminder_timestamp_upperbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
@@ -1135,15 +1083,11 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                         [
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "reminder_timestamp_lowerbound": 0
-                                                },
+                                                "arguments": {"reminder_timestamp_lowerbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "reminder_timestamp_upperbound": 0
-                                                },
+                                                "arguments": {"reminder_timestamp_upperbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
@@ -1219,15 +1163,11 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                         [
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "reminder_timestamp_lowerbound": 0
-                                                },
+                                                "arguments": {"reminder_timestamp_lowerbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "reminder_timestamp_upperbound": 0
-                                                },
+                                                "arguments": {"reminder_timestamp_upperbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
@@ -1303,15 +1243,11 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                         [
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "reminder_timestamp_lowerbound": 0
-                                                },
+                                                "arguments": {"reminder_timestamp_lowerbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "reminder_timestamp_upperbound": 0
-                                                },
+                                                "arguments": {"reminder_timestamp_upperbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
@@ -1387,15 +1323,11 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                         [
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "creation_timestamp_lowerbound": 0
-                                                },
+                                                "arguments": {"creation_timestamp_lowerbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "creation_timestamp_upperbound": 0
-                                                },
+                                                "arguments": {"creation_timestamp_upperbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
@@ -1471,15 +1403,11 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                                         [
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "creation_timestamp_lowerbound": 0
-                                                },
+                                                "arguments": {"creation_timestamp_lowerbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
-                                                "arguments": {
-                                                    "creation_timestamp_upperbound": 0
-                                                },
+                                                "arguments": {"creation_timestamp_upperbound": 0},
                                             },
                                             {
                                                 "tool_name": "search_reminder",
@@ -1515,8 +1443,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B to postpone your upcoming reminder to tomorrow 5PM."
+                    "content": USER_INSTRUCTION + "Ask User B to postpone your upcoming reminder to tomorrow 5PM."
                     "You do not have any more information.",
                 },
                 {
@@ -1574,8 +1501,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
                 {
                     "sender": RoleType.SYSTEM,
                     "recipient": RoleType.USER,
-                    "content": USER_INSTRUCTION
-                    + "Ask User B to remove your upcoming reminder."
+                    "content": USER_INSTRUCTION + "Ask User B to remove your upcoming reminder."
                     "You do not have any more information.",
                 },
                 {
@@ -1632,7 +1558,7 @@ def get_extensions(base_scenarios: Dict[str, Scenario]) -> List[ScenarioExtensio
 def named_insufficient_information_scenarios(
     preferred_tool_backend: ToolBackend,
 ) -> Dict[str, Scenario]:
-    """Scenarios where user prompts and provided tools are not sufficient to complete the task
+    """Scenarios where user prompts and provided tools are not sufficient to complete the task.
 
     Args:
         preferred_tool_backend: Which backend should be chosen in face of conflicting tool names.
@@ -1640,9 +1566,7 @@ def named_insufficient_information_scenarios(
     Returns:
         A Dict containing scenario name and scenario
     """
-    extensions = get_extensions(
-        named_base_scenarios(preferred_tool_backend=preferred_tool_backend)
-    )
+    extensions = get_extensions(named_base_scenarios(preferred_tool_backend=preferred_tool_backend))
     # All scenarios in this module should be insufficient information. Add these categories if they aren't there
     for extension in extensions:
         for default_categories in [
@@ -1650,8 +1574,4 @@ def named_insufficient_information_scenarios(
         ]:
             if default_categories not in extension.categories:
                 extension.categories.append(default_categories)
-    return {
-        key: scenario
-        for extension in extensions
-        for key, scenario in extension.get_extended_scenario().items()
-    }
+    return {key: scenario for extension in extensions for key, scenario in extension.get_extended_scenario().items()}

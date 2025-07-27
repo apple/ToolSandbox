@@ -25,7 +25,7 @@ from tool_sandbox.scenarios.single_tool_call_scenarios import (
 def named_scenarios(
     preferred_tool_backend: ToolBackend,
 ) -> Dict[str, Scenario]:
-    """Aggregate named scenarios from submodules
+    """Aggregate named scenarios from submodules.
 
     In addition, adds tool augmentation scenarios for all
 
@@ -35,24 +35,16 @@ def named_scenarios(
     Returns:
         A dictionary of scenarios
     """
-    scenarios: Dict[str, Scenario] = dict()
+    scenarios: Dict[str, Scenario] = {}
     for new_scenarios in [
         named_single_tool_call_scenarios(preferred_tool_backend=preferred_tool_backend),
-        named_multiple_tool_call_scenarios(
-            preferred_tool_backend=preferred_tool_backend
-        ),
-        named_multiple_user_turn_scenarios(
-            preferred_tool_backend=preferred_tool_backend
-        ),
-        named_insufficient_information_scenarios(
-            preferred_tool_backend=preferred_tool_backend
-        ),
+        named_multiple_tool_call_scenarios(preferred_tool_backend=preferred_tool_backend),
+        named_multiple_user_turn_scenarios(preferred_tool_backend=preferred_tool_backend),
+        named_insufficient_information_scenarios(preferred_tool_backend=preferred_tool_backend),
     ]:
         conflicting_names: Set[str] = set(scenarios.keys()) & set(new_scenarios.keys())
         if conflicting_names:
-            raise ValueError(
-                f"Conflicting names found between scenarios: {conflicting_names}"
-            )
+            raise ValueError(f"Conflicting names found between scenarios: {conflicting_names}")
         scenarios.update(new_scenarios)
     # Add tool augmentations
     names = list(scenarios.keys())
@@ -64,9 +56,7 @@ def named_scenarios(
         )
         # Shuffle base scenario tools
         assert scenarios[name].starting_context.tool_allow_list is not None
-        random.shuffle(
-            cast(list[str], scenarios[name].starting_context.tool_allow_list)
-        )
+        random.shuffle(cast("list[str]", scenarios[name].starting_context.tool_allow_list))
 
         # 3 distraction
         scenario = copy.deepcopy(scenarios[name])
@@ -98,33 +88,25 @@ def named_scenarios(
         # On top of 3 distraction, add tool augmentations
         # Scramble description
         scenario = copy.deepcopy(scenarios[f"{name}_3_distraction_tools"])
-        scenario.starting_context.tool_augmentation_list = [
-            ScenarioCategories.TOOL_DESCRIPTION_SCRAMBLED
-        ]
+        scenario.starting_context.tool_augmentation_list = [ScenarioCategories.TOOL_DESCRIPTION_SCRAMBLED]
         scenario.categories.append(ScenarioCategories.TOOL_DESCRIPTION_SCRAMBLED)
         scenarios[f"{name}_3_distraction_tools_tool_description_scrambled"] = scenario
 
         # Scramble arg type
         scenario = copy.deepcopy(scenarios[f"{name}_3_distraction_tools"])
-        scenario.starting_context.tool_augmentation_list = [
-            ScenarioCategories.ARG_TYPE_SCRAMBLED
-        ]
+        scenario.starting_context.tool_augmentation_list = [ScenarioCategories.ARG_TYPE_SCRAMBLED]
         scenario.categories.append(ScenarioCategories.ARG_TYPE_SCRAMBLED)
         scenarios[f"{name}_3_distraction_tools_arg_type_scrambled"] = scenario
 
         # Scramble arg description
         scenario = copy.deepcopy(scenarios[f"{name}_3_distraction_tools"])
-        scenario.starting_context.tool_augmentation_list = [
-            ScenarioCategories.ARG_DESCRIPTION_SCRAMBLED
-        ]
+        scenario.starting_context.tool_augmentation_list = [ScenarioCategories.ARG_DESCRIPTION_SCRAMBLED]
         scenario.categories.append(ScenarioCategories.ARG_DESCRIPTION_SCRAMBLED)
         scenarios[f"{name}_3_distraction_tools_arg_description_scrambled"] = scenario
 
         # Scramble tool name
         scenario = copy.deepcopy(scenarios[f"{name}_3_distraction_tools"])
-        scenario.starting_context.tool_augmentation_list = [
-            ScenarioCategories.TOOL_NAME_SCRAMBLED
-        ]
+        scenario.starting_context.tool_augmentation_list = [ScenarioCategories.TOOL_NAME_SCRAMBLED]
         scenario.categories.append(ScenarioCategories.TOOL_NAME_SCRAMBLED)
         scenarios[f"{name}_3_distraction_tools_tool_name_scrambled"] = scenario
 

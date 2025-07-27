@@ -84,29 +84,21 @@ def _extract_tools(
     Raises:
         KeyError: If multiple tools share the same name and backend
     """
-    name_to_backend_to_tool: dict[str, dict[ToolBackend, Callable[..., Any]]] = (
-        defaultdict(lambda: defaultdict())
-    )
+    name_to_backend_to_tool: dict[str, dict[ToolBackend, Callable[..., Any]]] = defaultdict(lambda: defaultdict())
     for tool_name, tool in function_name_and_callables:
-        backend_to_tool = name_to_backend_to_tool.get(tool_name, None)
+        backend_to_tool = name_to_backend_to_tool.get(tool_name)
         backend = getattr(tool, "backend", None)
-        if (
-            backend_to_tool is not None
-            and backend is not None
-            and backend_to_tool.get(backend, tool) != tool
-        ):
+        if backend_to_tool is not None and backend is not None and backend_to_tool.get(backend, tool) != tool:
             raise KeyError(
                 f"Found 2 tools {tool} and {backend_to_tool.get(backend, tool)} "
                 f"sharing the same name {tool_name} and backend {backend}"
             )
         if getattr(tool, "is_tool", False):
-            name_to_backend_to_tool[tool_name][getattr(tool, "backend")] = tool
+            name_to_backend_to_tool[tool_name][tool.backend] = tool  # type: ignore[attr-defined]
     return name_to_backend_to_tool
 
 
-def find_tools_by_module(
-    module: ModuleType, preferred_tool_backend: ToolBackend
-) -> dict[str, Callable[..., Any]]:
+def find_tools_by_module(module: ModuleType, preferred_tool_backend: ToolBackend) -> dict[str, Callable[..., Any]]:
     """Recursively look through modules / packages to find functions registered as tools.
 
     This will find any function registered with register_as_tool decorator that's under the module.
@@ -126,9 +118,7 @@ def find_tools_by_module(
     Raises:
         KeyError: If multiple tools share the same name and backend
     """
-    current_module_name_and_functions: list[tuple[str, Callable[..., Any]]] = (
-        getmembers(module, isfunction)
-    )
+    current_module_name_and_functions: list[tuple[str, Callable[..., Any]]] = getmembers(module, isfunction)
     sub_module_name_and_tools: list[tuple[str, Callable[..., Any]]] = []
     for _, sub_module in getmembers(module, ismodule):
         # Recursively apply for submodules
@@ -138,22 +128,18 @@ def find_tools_by_module(
             if sub_module.__name__.startswith(module.__name__ + ".")
             else []
         )
-    name_to_backend_to_tool = _extract_tools(
-        sub_module_name_and_tools + current_module_name_and_functions
-    )
+    name_to_backend_to_tool = _extract_tools(sub_module_name_and_tools + current_module_name_and_functions)
 
     # Find preferred tool
     preferred_tools_by_name: dict[str, Callable[..., Any]] = defaultdict()
     backend_preferences = list(ToolBackend)
     # Move preferred_tool_backend and DEFAULT to the first 2 items in the list
     for item in [ToolBackend.DEFAULT, preferred_tool_backend]:
-        backend_preferences.insert(
-            0, backend_preferences.pop(backend_preferences.index(item))
-        )
+        backend_preferences.insert(0, backend_preferences.pop(backend_preferences.index(item)))
     for tool_name, backend_to_tool in name_to_backend_to_tool.items():
         preferred_tools_by_name[tool_name] = sorted(
             backend_to_tool.items(),
-            key=lambda x: backend_preferences.index(getattr(x[1], "backend")),
+            key=lambda x: backend_preferences.index(x[1].backend),  # type: ignore[attr-defined]
         )[0][1]
 
     return preferred_tools_by_name
@@ -164,8 +150,7 @@ def rank_tools_by_similarity(
     module: ModuleType,
     preferred_tool_backend: ToolBackend,
 ) -> list[str]:
-    """Given a list of tool names, return a list of all available tools in the module, ranked by their similarity
-    to tool_names in descending order.
+    """Given a list of tool names, return a list of all available tools in the module, ranked by their similarity to tool_names in descending order.
 
     Similarities are defined by a few heuristics. The returned list is broken down in to 2 sections
     1. tools in the same module as at least one of the tools in tool_names
@@ -181,15 +166,11 @@ def rank_tools_by_similarity(
     Returns:
         A list of tool names (excluding ones found in tool_names) sorted by descending similarity
     """
-    all_tools = find_tools_by_module(
-        module, preferred_tool_backend=preferred_tool_backend
-    )
+    all_tools = find_tools_by_module(module, preferred_tool_backend=preferred_tool_backend)
     # If not provided, return all tools
     if target_tool_names is None or not target_tool_names:
         return list(all_tools.keys())
-    all_tools = find_tools_by_module(
-        module, preferred_tool_backend=preferred_tool_backend
-    )
+    all_tools = find_tools_by_module(module, preferred_tool_backend=preferred_tool_backend)
     # Find the modules of provided tool
     target_module_names: Set[str] = set()
     for tool_name in target_tool_names:

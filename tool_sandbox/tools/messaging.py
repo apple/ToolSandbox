@@ -36,7 +36,7 @@ from tool_sandbox.tools.setting import get_cellular_service_status
 @register_as_tool(visible_to=(RoleType.AGENT,))
 @typechecked
 def send_message_with_phone_number(phone_number: str, content: str) -> str:
-    """Send a message to a recipient using phone_number
+    """Send a message to a recipient using phone_number.
 
     Args:
         phone_number:   String format phone number to send the message to
@@ -66,9 +66,7 @@ def send_message_with_phone_number(phone_number: str, content: str) -> str:
         )
     # Find recipient, not guaranteed to exist
     recipient_data = search_contacts(phone_number=phone_number)
-    recipient_person_id = (
-        None if len(recipient_data) == 0 else recipient_data[0]["person_id"]
-    )
+    recipient_person_id = None if len(recipient_data) == 0 else recipient_data[0]["person_id"]
     current_context.add_to_database(
         namespace=DatabaseNamespace.MESSAGING,
         rows=[
@@ -111,7 +109,7 @@ def search_messages(
         Union[str, float],
     ]
 ]:
-    """Search for a message based on provided arguments
+    """Search for a message based on provided arguments.
 
     Each field has a search criteria of one of the below
     1. Exact value matching
@@ -182,19 +180,6 @@ def search_messages(
         ],
     )
     return cast(
-        List[
-            Dict[
-                Literal[
-                    "message_id",
-                    "sender_person_id",
-                    "sender_phone_number",
-                    "recipient_person_id",
-                    "recipient_phone_number",
-                    "content",
-                    "creation_timestamp",
-                ],
-                Union[str, float],
-            ]
-        ],
+        "List[Dict[Literal['message_id', 'sender_person_id', 'sender_phone_number', 'recipient_person_id', 'recipient_phone_number', 'content', 'creation_timestamp'], Union[str, float]]]",
         messaging_dataframe.to_dicts(),
     )

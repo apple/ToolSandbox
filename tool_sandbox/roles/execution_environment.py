@@ -1,6 +1,6 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Python Execution Environment"""
+"""Python Execution Environment."""
 
 import code
 import copy
@@ -130,10 +130,7 @@ def respond_to_messages(
         The response messages. Note that it can be an empty list if the messages came
         from the `system` role.
     """
-    response_messages = [
-        respond_to_single_message(interactive_console, message, role_type)
-        for message in messages
-    ]
+    response_messages = [respond_to_single_message(interactive_console, message, role_type) for message in messages]
     return [message for message in response_messages if message is not None]
 
 
@@ -207,17 +204,12 @@ def respond_to_messages_set_all_order_permutations(
             # Consistency check. We compare the contents since comparing the list of
             # messages fails (presumably because `itertools.permutations` copies
             # objects or something like that).
-            assert [message.content for message in messages] == [
-                message.content for message in permutated_messages
-            ]
+            assert [message.content for message in messages] == [message.content for message in permutated_messages]
 
         # If a failure occurred for any permutation of tool calls there is no need
         # to execute the remaining permutations since we consider the parallel tool
         # invalid (i.e. previous permutations may have just succeeded out of luck).
-        failure = any(
-            response.tool_call_exception is not None
-            for response in current_response_messages
-        )
+        failure = any(response.tool_call_exception is not None for response in current_response_messages)
         if failure:
             # On failure we want to return the current responses even if they do not
             # match the originally requested tool call order.
@@ -228,9 +220,7 @@ def respond_to_messages_set_all_order_permutations(
     return response_messages
 
 
-def get_messages_to_process(
-    messages: list[Message], recipient: RoleType
-) -> list[Message]:
+def get_messages_to_process(messages: list[Message], recipient: RoleType) -> list[Message]:
     """Filter out the message to which the execution environment should respond.
 
     Args:
@@ -250,14 +240,15 @@ def get_messages_to_process(
 
 
 class ExecutionEnvironment(BaseRole):
-    """An Execution Environment able to execute python code in an REPL console in a stateful manner
-    Note that this happens in the same process and thread as your main process, just under a different scope
+    """An Execution Environment able to execute python code in an REPL console in a stateful manner.
+
+    Note that this happens in the same process and thread as your main process, just under a different scope.
     """
 
     role_type: RoleType = RoleType.EXECUTION_ENVIRONMENT
 
     def respond(self, ending_index: Optional[int] = None) -> None:
-        """Reads a List of messages and attempt to respond with a Message
+        """Reads a List of messages and attempt to respond with a Message.
 
         Specifically, reads python source code from other Roles, executes and return with REPL env stdout / stderr
         System could provide necessary imports and init commands at the start, in which case we won't respond,
@@ -282,9 +273,7 @@ class ExecutionEnvironment(BaseRole):
         # Some LLMs (e.g. GPT-3.5 turbo) can return multiple function calls in a single
         # request, which is called parallel function calling. Thus, the execution
         # environment may have to process multiple messages.
-        messages_to_process = get_messages_to_process(
-            messages, recipient=self.role_type
-        )
+        messages_to_process = get_messages_to_process(messages, recipient=self.role_type)
 
         response_messages = respond_to_messages_set_all_order_permutations(
             execution_context=get_current_context(),
@@ -301,26 +290,22 @@ class ExecutionEnvironment(BaseRole):
         # Agent -> ExecutionEnvironment message to ExecutionEnvironment -> Agent messages
         # Note that tool traces are being stored in permuted order, while responses messages are in original order.
         # Need to reorder tool trace accordingly.
-        tool_trace_series: Optional[pl.Series] = current_context.get_database(
-            DatabaseNamespace.SANDBOX
-        )["tool_trace"][0]
+        tool_trace_series: Optional[pl.Series] = current_context.get_database(DatabaseNamespace.SANDBOX)["tool_trace"][
+            0
+        ]
         if tool_trace_series is not None:
             tool_trace_list = tool_trace_series.to_list()
             # Erase tool trace collected in Agent -> ExecutionEnvironment message
             current_context.update_database(
                 DatabaseNamespace.SANDBOX,
-                current_context.get_database(DatabaseNamespace.SANDBOX).with_columns(
-                    pl.lit(None).alias("tool_trace")
-                ),
+                current_context.get_database(DatabaseNamespace.SANDBOX).with_columns(pl.lit(None).alias("tool_trace")),
             )
             # Hack for skipping execution where an exception happened
             tool_trace_index = 0
             for i in range(len(response_messages)):
                 if response_messages[i].tool_call_exception is not None:
                     continue
-                response_messages[i] = evolve(
-                    response_messages[i], tool_trace=[tool_trace_list[tool_trace_index]]
-                )
+                response_messages[i] = evolve(response_messages[i], tool_trace=[tool_trace_list[tool_trace_index]])
                 tool_trace_index += 1
             assert tool_trace_index == len(tool_trace_list), (
                 f"The tool trace index of {tool_trace_index} does not match the "

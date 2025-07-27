@@ -40,8 +40,7 @@ def add_contact(
     relationship: Optional[str] = None,
     is_self: bool = False,
 ) -> str:
-    """Add a new contact person to contact database. Entries with identical information are allowed,
-    and will be assigned different person_ids.
+    """Add a new contact person to contact database. Entries with identical information are allowed, and will be assigned different person_ids.
 
     Args:
         name:           Name of contact person
@@ -87,7 +86,7 @@ def modify_contact(
     relationship: Union[str, NotGiven] = NOT_GIVEN,
     is_self: Union[bool, NotGiven] = NOT_GIVEN,
 ) -> None:
-    """Modify a contact entry with new information provided
+    """Modify a contact entry with new information provided.
 
     Args:
         person_id:      String unique identifier for the contact person
@@ -96,14 +95,11 @@ def modify_contact(
         relationship:   New relationship for the person
         is_self:        Optional. Defaults to False. Should be set to True if the contact corresponds to the current user.
 
-    Returns:
-
     Raises:
         ValueError:     When all arguments were None
         NoDataError:    When the person_id cannot be found in database
         DuplicateError: When multiple entries with the same id were found
                         or when modifying an entry to self with existing self
-
     """
     if all(x is NOT_GIVEN for x in [name, phone_number, relationship, is_self]):
         raise ValueError(
@@ -128,7 +124,7 @@ def modify_contact(
         raise DuplicateError(f"More than 1 entry with {person_id=} found")
     target_entry_dict = target_entry_dicts[0]
     # Create updated entry
-    for name, value in [
+    for name, value in [  # noqa: B020
         ("name", name),
         ("phone_number", phone_number),
         ("relationship", relationship),
@@ -155,8 +151,6 @@ def remove_contact(person_id: str) -> None:
     Args:
         person_id:      String format unique identifier of the person to be deleted
 
-    Returns:
-
     Raises:
         NoDataError:    If the provided person_id was not found
     """
@@ -181,7 +175,7 @@ def search_contacts(
         str,
     ]
 ]:
-    """Search for a contact person based on provided arguments
+    """Search for a contact person based on provided arguments.
 
     Each field has a search criteria of either
     1. Exact value matching
@@ -220,11 +214,6 @@ def search_contacts(
         ],
     )
     return cast(
-        List[
-            Dict[
-                Literal["person_id", "name", "phone_number", "relationship", "is_self"],
-                str,
-            ]
-        ],
+        "List[Dict[Literal['person_id', 'name', 'phone_number', 'relationship', 'is_self'], str]]",
         contacts_dataframe.to_dicts(),
     )
