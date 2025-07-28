@@ -356,6 +356,50 @@ def convert_python_function_to_openai_function(
     }
 
 
+def convert_python_function_to_nl_tool_string(function: Callable[..., Any]) -> str:
+    """Convert a Python function to a natural language tool string.
+
+    Args:
+        function: A Python function.
+
+    Returns:
+        A natural language tool string.
+    """
+    description, arg_descriptions = _parse_python_function_docstring(function)
+    args = _get_python_function_arguments(function, arg_descriptions)
+    #     {'name': {'type': 'string',
+    #     'description': 'Name of contact person'},
+    #    'phone_number': {'type': 'string',
+    #     'description': 'Phone number of contact person'},
+    #    'relationship': {'type': 'string',
+    #     'description': 'Optional, relationship between user and this contact'},
+    #    'is_self': {'type': 'boolean',
+    #     'description': 'Optional. Defaults to False. Should be set to True if the contact corresponds to the current user.'}}
+    args_details = []
+    for arg, details in args.items():
+        type = details.get("type", "unknown")
+        arg_description = details.get("description", "unknown")
+        args_details.append(f"{arg} ({type}): {arg_description}")
+
+    arg_descriptions_str = "\n\t".join(args_details)
+    if arg_descriptions_str:
+        return f"Tool Name: {function.__name__}\nDescription: {description}\nArguments:\n\t{arg_descriptions_str}"
+    else:
+        return f"Tool Name: {function.__name__}\nDescription: {description}\nArguments: None"
+
+
+def get_tool_docs_natural_language(tools: dict[str, Callable[..., Any]]) -> str:
+    """Get the natural language tool docs for a list of tools.
+
+    Args:
+        tools: A dictionary of tool names to tools.
+
+    Returns:
+        A natural language tool string.
+    """
+    return "\n\n".join([convert_python_function_to_nl_tool_string(tool) for tool in tools.values()])
+
+
 def convert_to_openai_tool(
     tool: Callable[..., Any],
     name: Optional[str] = None,
