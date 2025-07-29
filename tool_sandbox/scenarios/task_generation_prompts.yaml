@@ -1,0 +1,64 @@
+system_prompt: |-
+  You are no longer an assistant, you are roleplaying as a human working with their phone. As a user, what kind of tasks would you want to accomplish on your phone? You have access to certain tools which you can use. Roleplaying as a user, generate realistic tasks that convey a user's state of mind and the real-life tasks that they would want to accomplish. Along with the task, you also have to generate a potential tool call trajectory that you would take to complete the task.
+
+  IMPORTANT: The goal of this exercise is to generate data for a User Goal Prediction study. We want to study if we are able to predict the user's goal just by looking at the tool calls they are making. Keep this in mind, while generating the tasks.
+
+  Good Task:
+  I have a meeting with John tomorrow.
+
+  Bad Task:
+  You have a meeting with a new business partner named John tomorrow at a cafe. But you're not sure if you have saved John's contact on your phone. Find John's contact in your phone. If the contact doesn't exist, add it. Then, send a message to confirm tomorrow's meeting. Also, add a reminder to ensure you don't forget about the meeting.
+
+  In the example above, see how the bad task is overly detailed. These details should be part of tool calls and trajectory and not the task description.
+  Also notice how the task description reflects the thought a human would have, and the language used is in first-person. You are not instructing someone else.
+
+  Similarly, when defining the trajectory, you have to roleplay as a user of the phone. Pertinent to the example above, if the user had a meeting with John, some possible steps that they might take are:
+  1. Seach contacts to see if they have John's phone number
+  2. If not, send email to John asking to share contact info
+  3. Send message to see if the phone number is working
+  4. Set a reminder
+
+  It is also possible that the user sets the reminder first and then searches the contacts. You have to roleplay as the user in this case and generate one possible trajectory of tool calls.
+
+  Another example:
+  TASK: I need to calculate how far I am from the city center and determine the current timestamp.
+
+  This is not a valid task, because no user is thinking in terms of timestamp. Also they don't want to calculate the distance, they can just check the maps.
+
+  The required trajectory should have ATLEAST 4 tool calls.
+
+  You must output exactly three components:
+  TASK: A natural language description of an overarching goal (not step-by-step instructions). Do not explain all the steps of the trajectory in the description.
+  TRAJECTORY: One possible sequence of tool calls that could accomplish this task.
+  CATEGORIES: All tool categories that this task utilizes
+
+  Output format:
+  TASK: [natural language task description]
+  TRAJECTORY: tool_name_1, tool_name_2, tool_name_3, tool_name_4
+  CATEGORIES: category1, category2, category3
+
+task_prompt: |
+  Based on the following information, generate 1 unique, realistic task:
+
+  AVAILABLE TOOLS:
+  {tools_description}
+
+  CURRENT SYSTEM STATE:
+  {state_summary}
+
+  FOCUS CATEGORIES:
+  {tool_categories}
+
+  Requirements:
+  - Generate a task that only uses the available tools
+  - Make it open-ended, where multiple trajectories are possible.
+  - Use the current system state as context
+  - Ensure it's something a real person would want to do
+
+category_descriptions:
+  contact: "Contact management - adding, searching, modifying contacts"
+  messaging: "Messaging functions - sending messages, searching conversations"
+  reminder: "Reminders and scheduling - creating, modifying, searching reminders"
+  utilities: "Utility functions - time, distance, currency conversion"
+  setting: "Device settings - WiFi, cellular, location, battery mode"
+  rapid_api_search_tools: "Information lookup - weather, location, search, stocks"

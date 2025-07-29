@@ -1,427 +1,477 @@
-# Task Generator Role Implementation Plan
+# Task Generator Implementation Plan
 
 ## Overview
-This document outlines the implementation plan for adding a task generator role to the Tool Sandbox codebase. The role will generate realistic natural language task descriptions for mobile phone users based on available tools and current system state.
+This document outlines the implementation plan for adding a task generator utility to the Tool Sandbox codebase. The utility will generate realistic natural language task descriptions for mobile phone users based on available tools and current system state. This is a utility class for creating test scenarios, not a conversational role.
 
-## 1. Core Architecture Changes
+## 1. Core Architecture - Utility Class Approach
 
-### 1.1 Execution Context Updates
-
-**File:** `tool_sandbox/common/execution_context.py`
-**Changes:** Add new role type to enum
-
-```python
-class RoleType(StrEnum):
-    # ... existing roles ...
-    TASK_GENERATOR = auto()  # Add this line around line 55
-```
+### 1.1 No Role Type Changes Needed
+- TaskGenerator is **not a Role** - it doesn't participate in conversations
+- No changes needed to `RoleType` enum
+- No message-based communication required
 
 ### 1.2 CLI Integration (Optional)
 
 **File:** `tool_sandbox/cli/utils.py`
-**Changes:** Add task generator to factory mappings
+**Changes:** Add task generator commands for scenario generation
 
 ```python
-class RoleImplType(StrEnum):
-    # ... existing types ...
-    Task_Generator_GPT4 = auto()
-    Task_Generator_Claude = auto()
-
-TASK_GENERATOR_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
-    RoleImplType.Task_Generator_GPT4: lambda: OpenAITaskGeneratorRole(model_name="gpt-4"),
-    RoleImplType.Task_Generator_Claude: lambda: AnthropicTaskGeneratorRole(model_name="claude-3-sonnet"),
-}
+# Optional CLI commands for task generation
+def generate_tasks_command():
+    # pseudocode: CLI interface for generating tasks and creating scenarios
 ```
 
 ## 2. Core Implementation
 
-### 2.1 Main Task Generator Role
+### 2.1 Main Task Generator Utility
 
-**File:** `tool_sandbox/roles/task_generator_role.py`
+**File:** `tool_sandbox/common/task_generator.py`
 
 #### 2.1.1 Data Structures
 
 ```python
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
-from enum import auto
-from strenum import StrEnum
-
-class TaskCategory(StrEnum):
-    COMMUNICATION = auto()
-    SCHEDULING = auto()
-    INFORMATION_LOOKUP = auto()
-    LOCATION_BASED = auto()
-    MULTI_STEP = auto()
-    SOCIAL = auto()
-
-class TaskComplexity(StrEnum):
-    SIMPLE = auto()      # 1-2 tool calls
-    MODERATE = auto()    # 3-5 tool calls
-    COMPLEX = auto()     # 6+ tool calls
-
-@dataclass
+@define
 class GeneratedTask:
     """Container for a generated task."""
+    task_id: str
     description: str
-    required_tools: List[str]
-    estimated_steps: int
-    category: TaskCategory
-    complexity: TaskComplexity
-    context_dependencies: List[str]  # e.g., ["has_contacts", "location_enabled"]
+    required_tools: list[str]
+    estimated_steps: Optional[int]
+    tools_category: list[str]
+    complexity: Optional[TaskComplexity]
+    context_dependencies: Optional[list[str]]
 ```
 
-#### 2.1.2 Base Task Generator Class
+#### 2.1.2 Tool Category System
 
 ```python
-class TaskGeneratorRole(BaseRole):
-    """Base class for task generator roles."""
+# Tool categories and their associated tools are discovered using existing functionality
+# Uses get_tool_categories_info() from tool_discovery.py
 
-    role_type: RoleType = RoleType.TASK_GENERATOR
+# From tool_discovery.py:
+# get_tool_categories_info(preferred_tool_backend: ToolBackend = ToolBackend.DEFAULT) -> Dict[str, ToolCategoryInfo]
+# Returns: {"contact": ToolCategoryInfo(tools={...}, database=DatabaseNamespace.CONTACT), ...}
 
-    def __init__(self, model_name: str) -> None:
+# TaskGenerator leverages this existing function instead of reimplementing discovery logic
+# - Automatically discovers all tool categories from tool_sandbox.tools modules
+# - Maps each category to its available tools and associated database
+# - No static lists needed - always in sync with codebase
+```
+
+#### 2.1.3 Abstract Base Task Generator Class
+
+```python
+from abc import ABC, abstractmethod
+
+class TaskGenerator(ABC):
+    """Abstract base class for task generators."""
+
+    def __init__(self) -> None:
         """Initialize task generator."""
         # pseudocode:
-        # - call super().__init__()
-        # - store model_name
-        # - initialize task generation templates
-        # - set up tool filtering capabilities
+        # - load prompt templates from YAML file
+        # - set up common configuration
+        # - get all tool categories info
 
-    def generate_tasks(
+    def generate_task(
         self,
-        num_tasks: int = 5,
-        tool_filter: Optional[List[str]] = None,
-        complexity: Optional[TaskComplexity] = None,
-        category: Optional[TaskCategory] = None,
-        use_current_state: bool = True
-    ) -> List[GeneratedTask]:
-        """Main entry point for task generation."""
+        tool_categories: list[str],
+        execution_context: ExecutionContext,
+        preferred_tool_backend: ToolBackend = ToolBackend.DEFAULT,
+        max_retry_attempts: int = 3
+    ) -> GeneratedTask:
+        """Main entry point for task generation with feedback loop for format errors."""
         # pseudocode:
-        # 1. get_available_tools_description(tool_filter)
-        # 2. get_system_state_summary() if use_current_state
-        # 3. create_task_generation_prompt(tools, state, constraints)
-        # 4. call_llm_for_tasks(prompt)
-        # 5. parse_and_validate_tasks(llm_response)
-        # 6. return List[GeneratedTask]
+        # 1. validate_tool_categories(tool_categories)
+        # 2. filter available tools by tool_categories
+        # 3. get_tools_description()
+        # 4. get_state_summary(execution_context)
+        # 5. system_prompt, user_prompt = format_task_generation_prompt(tools, state, categories)
+        #
+        # 6. FEEDBACK LOOP with retry mechanism:
+        # for attempt in range(max_retry_attempts):
+        #     try:
+        #         llm_response = model_inference(system_prompt, user_prompt)
+        #         parsed_task = parse_and_validate_task(llm_response)
+        #         return parsed_task
+        #     except FormatError as e:
+        #         if attempt < max_retry_attempts - 1:
+        #             # For chat models, just send correction as new user message
+        #             feedback_user_prompt = create_format_correction_prompt(
+        #                 llm_response=llm_response,
+        #                 error_details=str(e)
+        #             )
+        #             user_prompt = feedback_user_prompt  # Use feedback prompt for next attempt
+        #         else:
+        #             raise  # Re-raise after max attempts
 
-    def get_available_tools_description(self, tool_filter: Optional[List[str]] = None) -> str:
+    def create_format_correction_prompt(
+        self,
+        llm_response: str,
+        error_details: str
+    ) -> str:
+        """Create a correction user prompt when LLM output format is incorrect."""
+        # pseudocode:
+        # 1. correction_template = load_format_correction_template()
+        # 2. return format_template(
+        #     incorrect_response=llm_response,
+        #     error_explanation=error_details,
+        #     expected_format=get_expected_format_example()
+        # )
+
+    def validate_tool_categories(self, tool_categories: list[str]) -> None:
+        """Validate that requested tool categories exist in the codebase."""
+        # pseudocode:
+        # 1. available_categories = list(self.all_tool_categories_info.keys())
+        # 2. invalid_categories = set(tool_categories) - set(available_categories)
+        # 3. if invalid_categories: raise ValueError with available options
+
+    def get_tools_description(self) -> str:
         """Get natural language description of available tools."""
         # pseudocode:
-        # 1. context = get_current_context()
-        # 2. all_tools = context.get_available_tools(scrambling_allowed=False)
-        # 3. if tool_filter: filter tools by tool_filter
-        # 4. return get_tool_docs_natural_language(filtered_tools)
+        # 1. return get_tool_docs_natural_language(self.available_tools)
 
-    def get_system_state_summary(self) -> Dict[str, Any]:
-        """Extract relevant system state information."""
+    def get_state_summary(self, execution_context: ExecutionContext) -> str:
+        """Get summary of execution context state."""
         # pseudocode:
-        # 1. context = get_current_context()
-        # 2. contacts_summary = self._summarize_contacts_db(context)
-        # 3. messages_summary = self._summarize_messages_db(context)
-        # 4. reminders_summary = self._summarize_reminders_db(context)
-        # 5. settings_summary = self._summarize_settings_db(context)
-        # 6. return combined summary dict
+        # 1. summary_parts = []
+        # 2. for each database namespace relevant to tool categories:
+        # 3.     if database has entries: summary_parts.append(summarize_database_content())
+        # 4. return "\n".join(summary_parts) or "No relevant system state found."
 
-    def _summarize_contacts_db(self, context: ExecutionContext) -> Dict[str, Any]:
-        """Summarize contacts database state."""
-        # pseudocode:
-        # 1. contacts_df = context.get_database(DatabaseNamespace.CONTACT)
-        # 2. return {
-        #     "total_contacts": len(contacts_df),
-        #     "has_self_contact": any(contacts_df["is_self"]),
-        #     "relationship_types": list(contacts_df["relationship"].unique()),
-        #     "sample_names": contacts_df["name"].head(3).to_list()
-        # }
-
-    def _summarize_messages_db(self, context: ExecutionContext) -> Dict[str, Any]:
-        """Summarize messaging database state."""
-        # pseudocode:
-        # 1. messages_df = context.get_database(DatabaseNamespace.MESSAGING)
-        # 2. return {
-        #     "total_messages": len(messages_df),
-        #     "recent_conversations": get_recent_conversation_summary(),
-        #     "unique_contacts_messaged": get_unique_message_contacts()
-        # }
-
-    def _summarize_reminders_db(self, context: ExecutionContext) -> Dict[str, Any]:
-        """Summarize reminders database state."""
-        # pseudocode:
-        # 1. reminders_df = context.get_database(DatabaseNamespace.REMINDER)
-        # 2. current_time = get_current_timestamp()
-        # 3. return {
-        #     "total_reminders": len(reminders_df),
-        #     "upcoming_reminders": count_upcoming_reminders(current_time),
-        #     "location_based_reminders": count_location_reminders()
-        # }
-
-    def _summarize_settings_db(self, context: ExecutionContext) -> Dict[str, Any]:
-        """Summarize system settings state."""
-        # pseudocode:
-        # 1. settings_df = context.get_database(DatabaseNamespace.SETTING)
-        # 2. return {
-        #     "wifi_enabled": get_setting_value("wifi_status"),
-        #     "cellular_enabled": get_setting_value("cellular_service_status"),
-        #     "location_enabled": get_setting_value("location_service_status"),
-        #     "low_battery_mode": get_setting_value("low_battery_mode_status")
-        # }
-
-    def create_task_generation_prompt(
+    def format_task_generation_prompt(
         self,
         tools_description: str,
-        state_summary: Dict[str, Any],
-        num_tasks: int,
-        constraints: Dict[str, Any]
-    ) -> str:
-        """Create the prompt for LLM task generation."""
+        state_summary: str,
+        tool_categories: list[str]
+    ) -> tuple[str, str]:
+        """Format both system and user prompts for task generation.
+
+        Args:
+            tools_description: Description of available tools
+            state_summary: Summary of execution context state
+            tool_categories: List of tool categories to focus on
+
+        Returns:
+            tuple[str, str]: Tuple of (system_prompt, user_prompt)
+        """
         # pseudocode:
-        # 1. base_prompt = load_base_task_generation_template()
-        # 2. context_section = format_context_information(state_summary)
-        # 3. tools_section = format_tools_information(tools_description)
-        # 4. constraints_section = format_constraints(constraints)
-        # 5. examples_section = load_task_examples()
-        # 6. output_format = specify_json_output_format()
-        # 7. return combine_prompt_sections(...)
+        # 1. prompts_file = Path(__file__).parent / "task_generator_prompt.yaml"
+        # 2. prompt_templates = yaml.safe_load(prompts_file.read_text())
+        # 3. system_prompt = prompt_templates["system_prompt"]
+        # 4. task_prompt_template = prompt_templates["task_prompt"]
+        # 5. user_prompt = task_prompt_template.format(
+        #     tools_description=tools_description,
+        #     state_summary=state_summary,
+        #     tool_categories=tool_categories
+        # )
+        # 6. return system_prompt, user_prompt
 
-    def call_llm_for_tasks(self, prompt: str) -> str:
-        """Abstract method for LLM API calls."""
-        raise NotImplementedError("Subclasses must implement this method")
+    @abstractmethod
+    def model_inference(self, system_prompt: str, user_prompt: str) -> str:
+        """Call LLM API with both system and user prompts. Must be implemented by subclasses."""
+        pass
 
-    def parse_and_validate_tasks(self, llm_response: str) -> List[GeneratedTask]:
-        """Parse LLM response and validate generated tasks."""
-        # pseudocode:
-        # 1. try: parsed_json = json.loads(extract_json_from_response(llm_response))
-        # 2. tasks = []
-        # 3. for task_data in parsed_json["tasks"]:
-        #     - validate_task_structure(task_data)
-        #     - validate_required_tools_exist(task_data["required_tools"])
-        #     - task = GeneratedTask(**task_data)
-        #     - tasks.append(task)
-        # 4. return tasks
-
-    def validate_task_structure(self, task_data: Dict[str, Any]) -> bool:
-        """Validate that task has required fields."""
-        # pseudocode:
-        # required_fields = ["description", "required_tools", "estimated_steps", "category"]
-        # return all(field in task_data for field in required_fields)
-
-    def respond(self, ending_index: Optional[int] = None) -> None:
-        """Required by BaseRole - not used for task generation."""
+    @abstractmethod
+    def parse_and_validate_task(self, llm_response: str) -> GeneratedTask:
+        """Parse LLM response and validate generated task. Must be implemented by subclasses."""
+        # Each provider may have different parsing requirements based on their output format
         pass
 ```
 
-#### 2.1.3 OpenAI Task Generator Implementation
+#### 2.1.4 Provider-Specific Implementations
 
 ```python
-from openai import OpenAI
-from tenacity import retry, wait_random_exponential, stop_after_attempt
-
-class OpenAITaskGeneratorRole(TaskGeneratorRole):
+class OpenAITaskGenerator(TaskGenerator):
     """OpenAI-specific task generator implementation."""
 
     def __init__(self, model_name: str = "gpt-4") -> None:
-        super().__init__(model_name)
-        self.client = OpenAI()
+        super().__init__()
         self.model_name = model_name
+        self.client = OpenAI()
 
     @retry(
         wait=wait_random_exponential(multiplier=1, max=40),
         stop=stop_after_attempt(3),
     )
-    def call_llm_for_tasks(self, prompt: str) -> str:
+    def model_inference(self, system_prompt: str, user_prompt: str) -> str:
         """Call OpenAI API for task generation."""
         # pseudocode:
-        # 1. messages = [{"role": "user", "content": prompt}]
+        # 1. messages = [
+        #     {"role": "system", "content": system_prompt},
+        #     {"role": "user", "content": user_prompt}
+        # ]
         # 2. response = self.client.chat.completions.create(
         #     model=self.model_name,
         #     messages=messages,
-        #     temperature=0.8,  # Higher for creativity
-        #     max_tokens=2000
+        #     temperature=0.8,
+        #     max_tokens=1000
         # )
         # 3. return response.choices[0].message.content
-```
 
-#### 2.1.4 Anthropic Task Generator Implementation
+    def parse_and_validate_task(self, llm_response: str) -> GeneratedTask:
+        """Parse OpenAI response and validate generated task."""
+        # pseudocode:
+        # 1. extract_task_components(llm_response)  # Extract TASK:, TRAJECTORY:, CATEGORIES:
+        # 2. validate_required_fields(task_components)
+        # 3. validate_tool_names_exist(trajectory_tools)
+        # 4. return GeneratedTask(...)
 
-```python
-import anthropic
-from tenacity import retry, wait_random_exponential, stop_after_attempt
-
-class AnthropicTaskGeneratorRole(TaskGeneratorRole):
+class AnthropicTaskGenerator(TaskGenerator):
     """Anthropic-specific task generator implementation."""
 
     def __init__(self, model_name: str = "claude-3-sonnet-20240229") -> None:
-        super().__init__(model_name)
-        self.client = anthropic.Anthropic()
+        super().__init__()
         self.model_name = model_name
+        self.client = anthropic.Anthropic()
 
     @retry(
         wait=wait_random_exponential(multiplier=1, max=40),
         stop=stop_after_attempt(3),
     )
-    def call_llm_for_tasks(self, prompt: str) -> str:
+    def model_inference(self, system_prompt: str, user_prompt: str) -> str:
         """Call Anthropic API for task generation."""
         # pseudocode:
         # 1. response = self.client.messages.create(
         #     model=self.model_name,
-        #     max_tokens=2000,
+        #     max_tokens=1000,
         #     temperature=0.8,
-        #     messages=[{"role": "user", "content": prompt}]
+        #     system=system_prompt,
+        #     messages=[{"role": "user", "content": user_prompt}]
         # )
         # 2. return response.content[0].text
+
+    def parse_and_validate_task(self, llm_response: str) -> GeneratedTask:
+        """Parse Anthropic response and validate generated task."""
+        # pseudocode:
+        # 1. extract_task_components(llm_response)  # Extract TASK:, TRAJECTORY:, CATEGORIES:
+        # 2. validate_required_fields(task_components)
+        # 3. validate_tool_names_exist(trajectory_tools)
+        # 4. return GeneratedTask(...)
 ```
 
-## 3. Prompt Engineering Strategy
+## 3. Database Population Strategy (DEFERRED FOR MVP)
 
-### 3.1 Base Prompt Template
+### 3.1 Current MVP Approach
+**STATUS: SKIPPED FOR MINIMUM VIABLE IMPLEMENTATION**
 
-```python
-TASK_GENERATION_TEMPLATE = """
-You are a task generator for a mobile phone assistant. Generate realistic, natural tasks that a typical smartphone user might want to accomplish.
+For the initial implementation, we're focusing on getting the LLM integration and task generation working without sample data population. The `get_state_summary()` method will work with whatever data is already in the ExecutionContext.
 
-AVAILABLE TOOLS:
-{tools_description}
+### 3.2 Future Sample Data Implementation
 
-CURRENT SYSTEM STATE:
-{state_summary}
+**File:** `tool_sandbox/common/task_generator_sample_data.json` (FUTURE)
 
-REQUIREMENTS:
-- Generate {num_tasks} unique tasks
-- Tasks should be realistic and natural
-- Use the provided tools and current system state as context
-- Vary complexity from simple (1-2 steps) to complex (5+ steps)
-- Include diverse scenarios: communication, scheduling, information lookup, etc.
+The sample data population system will be implemented in a future iteration to support:
+- Automatic detection of empty databases
+- Category-specific data population
+- Consistent UUID generation for data relationships
+- Realistic timestamp handling
 
-TASK CATEGORIES:
-- COMMUNICATION: messaging, calling, contact management
-- SCHEDULING: reminders, appointments, time management
-- INFORMATION_LOOKUP: weather, location, search, currency
-- LOCATION_BASED: navigation, nearby places, location reminders
-- MULTI_STEP: tasks requiring multiple tool calls and coordination
-- SOCIAL: group activities, event planning, social coordination
-
-OUTPUT FORMAT (JSON):
-{{
-  "tasks": [
-    {{
-      "description": "Natural language task description",
-      "required_tools": ["tool1", "tool2"],
-      "estimated_steps": 3,
-      "category": "COMMUNICATION",
-      "complexity": "MODERATE",
-      "context_dependencies": ["has_contacts"]
-    }}
-  ]
-}}
-
-EXAMPLES:
-Good: "Send a message to Sarah asking if she wants to grab dinner tonight at 7pm, and set a reminder for 6:30pm to leave"
-Bad: "Execute send_message_with_phone_number function"
-
-Generate tasks now:
-"""
-```
-
-### 3.2 Context Information Formatting
+### 3.3 MVP State Summary Approach
 
 ```python
-def format_context_information(state_summary: Dict[str, Any]) -> str:
-    """Format system state for prompt inclusion."""
+def get_state_summary(self, execution_context: ExecutionContext) -> str:
+    """Get summary of execution context state (MVP version)."""
     # pseudocode:
-    # contacts_info = f"Contacts: {state_summary['contacts']['total_contacts']} contacts including {state_summary['contacts']['sample_names']}"
-    # messages_info = f"Messages: {state_summary['messages']['total_messages']} messages, recent activity with {state_summary['messages']['recent_conversations']}"
-    # settings_info = f"Device: WiFi {'on' if state_summary['settings']['wifi_enabled'] else 'off'}, Cellular {'on' if state_summary['settings']['cellular_enabled'] else 'off'}"
-    # return combine all information into readable format
+    # 1. summary_parts = []
+    # 2. for each database namespace relevant to tool categories:
+    # 3.     if database has entries: summary_parts.append(summarize_database_content())
+    # 4. return "\n".join(summary_parts) or "No relevant system state found."
 ```
 
-## 4. Usage Examples
+## 4. LLM Response Format and Feedback Loop
 
-### 4.1 Basic Usage
+### 4.1 Expected Output Format
+
+The LLM should generate tasks in this specific format:
+```
+TASK: [natural language task description]
+TRAJECTORY: [tool_name_1 -> tool_name_2 -> tool_name_3]
+CATEGORIES: [category1, category2, category3]
+```
+
+### 4.2 Feedback Loop Mechanism
+
+When the LLM generates incorrectly formatted responses, the system implements a feedback loop:
+
+1. **Format Detection**: `parse_and_validate_task()` detects format errors
+2. **Error Classification**: Specific error types (missing fields, wrong format, invalid tools)
+3. **Correction Prompt**: Generate feedback prompt explaining the error
+4. **Retry with Feedback**: Use the correction prompt for the next attempt
+5. **Max Attempts**: Fail after 3 attempts to prevent infinite loops
+
+### 4.3 Format Correction Prompts
+
+**File:** `tool_sandbox/scenarios/task_generation_prompts.yaml`
+
+```yaml
+format_correction: |
+  Your previous response had formatting issues. Please fix the format and try again.
+
+  YOUR PREVIOUS RESPONSE:
+  {incorrect_response}
+
+  ERROR DETAILS:
+  {error_explanation}
+
+  REQUIRED FORMAT:
+  TASK: [clear, specific goal description]
+  TRAJECTORY: [tool_name_1 -> tool_name_2 -> tool_name_3]
+  CATEGORIES: [category1, category2, category3]
+
+  Please generate a new response following the exact format above.
+
+common_format_errors:
+  missing_fields: "Missing required fields. Must include TASK:, TRAJECTORY:, and CATEGORIES: sections."
+  invalid_trajectory_format: "TRAJECTORY must use format: tool_name_1 -> tool_name_2 -> tool_name_3"
+  nonexistent_tools: "TRAJECTORY contains tools that don't exist in the available tool set: {invalid_tools}"
+  category_mismatch: "CATEGORIES must match the requested tool categories: {expected_categories}"
+```
+
+### 4.4 Error Handling Classes
 
 ```python
-# Initialize task generator
-task_gen = OpenAITaskGeneratorRole(model_name="gpt-4")
+class TaskGenerationError(Exception):
+    """Base exception for task generation errors."""
+    pass
 
-# Generate 5 tasks using all available tools
-tasks = task_gen.generate_tasks(num_tasks=5)
+class FormatError(TaskGenerationError):
+    """Exception for LLM response format errors."""
+    def __init__(self, message: str, response: str, expected_format: str):
+        self.response = response
+        self.expected_format = expected_format
+        super().__init__(message)
 
-# Generate tasks for specific scenario
-messaging_tasks = task_gen.generate_tasks(
-    num_tasks=3,
-    tool_filter=["send_message_with_phone_number", "search_contacts"],
-    category=TaskCategory.COMMUNICATION,
-    complexity=TaskComplexity.SIMPLE
+class ValidationError(TaskGenerationError):
+    """Exception for task validation errors."""
+    pass
+```
+
+## 5. Usage Examples
+
+### 5.1 Basic Usage
+
+```python
+from tool_sandbox.common.task_generator import OpenAITaskGenerator, AnthropicTaskGenerator
+
+# Initialize specific task generator implementations
+openai_gen = OpenAITaskGenerator(model_name="gpt-4")
+anthropic_gen = AnthropicTaskGenerator(model_name="claude-3-sonnet-20240229")
+
+# Get available tool categories using existing tool discovery
+from tool_sandbox.common.tool_discovery import get_tool_categories_tools_map
+tools_map = get_tool_categories_tools_map()
+available_categories = list(tools_map.keys())
+# Returns: ["contact", "messaging", "reminder", "utilities", "setting", "rapid_api_search_tools"]
+
+# Generate task for specific tool categories
+context = ExecutionContext()  # Empty context - will be automatically populated
+communication_task = openai_gen.generate_task(
+    tool_categories=["contact", "messaging"],
+    execution_context=context  # Gets populated with sample contacts & messages
+)
+# Returns: GeneratedTask(description="Reply to Sarah's message about lunch plans", ...)
+
+# Generate task for reminder category
+reminder_task = anthropic_gen.generate_task(
+    tool_categories=["reminder"],
+    execution_context=ExecutionContext()  # Gets populated with sample reminders
+)
+# Returns: GeneratedTask(description="Check your overdue reminder about Company SF tickets", ...)
+
+# Generate task for multiple categories
+mixed_task = openai_gen.generate_task(
+    tool_categories=["messaging", "reminder", "utilities"],
+    execution_context=ExecutionContext()  # Gets populated with relevant sample data
+)
+
+# Generate task with pre-existing context
+existing_context = ExecutionContext()
+# ... context already has some data ...
+info_task = openai_gen.generate_task(
+    tool_categories=["rapid_api_search_tools", "setting"],
+    execution_context=existing_context  # Uses existing data, no sample population needed
 )
 ```
 
-### 4.2 Integration with Existing Scenario System
+### 5.2 Integration with Scenario Creation
 
 ```python
-def create_scenarios_from_generated_tasks(tasks: List[GeneratedTask]) -> Dict[str, Scenario]:
-    """Convert generated tasks into Tool Sandbox scenarios."""
+def create_scenario_from_generated_task(task: GeneratedTask, execution_context: ExecutionContext) -> Scenario:
+    """Convert generated task into Tool Sandbox scenario."""
     # pseudocode:
-    # scenarios = {}
-    # for task in tasks:
-    #     scenario_name = generate_scenario_name(task.description)
-    #     scenario = create_base_scenario_with_task_message(task.description)
-    #     scenarios[scenario_name] = scenario
-    # return scenarios
+    # 1. scenario = Scenario()
+    # 2. scenario.starting_context = deepcopy(execution_context)  # Use populated context
+    # 3. scenario.starting_context.add_to_database(
+    #      namespace=DatabaseNamespace.SANDBOX,
+    #      rows=[{"sender": RoleType.USER, "recipient": RoleType.AGENT, "content": task.description}]
+    #    )
+    # 4. scenario.evaluation = create_evaluation_from_task(task)
+    # 5. return scenario
 ```
 
-## 5. Testing Strategy
+## 6. Testing Strategy
 
-### 5.1 Unit Tests
+### 6.1 Unit Tests
 
-**File:** `tests/roles/task_generator_test.py`
+**File:** `tests/common/task_generator_test.py`
 
 ```python
-class TestTaskGeneratorRole:
-    def test_get_available_tools_description(self):
+class TestTaskGenerator:
+    def test_get_tools_description(self):
         # Test tool filtering and description generation
         pass
 
-    def test_get_system_state_summary(self):
-        # Test state extraction from different database states
+    def test_get_state_summary(self):
+        # Test state extraction from execution context
         pass
 
-    def test_parse_and_validate_tasks(self):
+    def test_generate_task(self):
+        # Test end-to-end single task generation
+        pass
+
+    def test_parse_and_validate_task(self):
         # Test parsing of various LLM response formats
         pass
 
-    def test_task_validation(self):
-        # Test validation of task structure and tool references
+    def test_populate_sample_data(self):
+        # Test sample data population for different categories
         pass
 
-class TestOpenAITaskGenerator:
-    def test_llm_call_with_retry(self):
-        # Test API call and retry logic
+    def test_context_needs_population(self):
+        # Test detection of when sample data is needed
         pass
 
-class TestAnthropicTaskGenerator:
-    def test_llm_call_with_retry(self):
-        # Test API call and retry logic
+class TestProviderSpecificGenerators:
+    def test_openai_generator(self):
+        # Test OpenAI-specific implementation
+        pass
+
+    def test_anthropic_generator(self):
+        # Test Anthropic-specific implementation
         pass
 ```
 
-### 5.2 Integration Tests
+### 6.2 Integration Tests
 
 ```python
 class TestTaskGeneratorIntegration:
-    def test_end_to_end_task_generation(self):
-        # Test complete flow from context to generated tasks
+    def test_scenario_creation_from_task(self):
+        # Test integration with scenario creation from single task
         pass
 
-    def test_with_different_system_states(self):
-        # Test task generation with various database states
+    def test_with_real_execution_context(self):
+        # Test with actual execution context states
         pass
 
-    def test_tool_filtering(self):
-        # Test task generation with tool subsets
+    def test_tool_integration(self):
+        # Test with real tool discovery and conversion
         pass
 ```
 
-## 6. Error Handling and Edge Cases
+## 7. Error Handling and Edge Cases
 
-### 6.1 LLM Response Handling
+### 7.1 LLM Response Handling
 
 ```python
 def robust_json_extraction(llm_response: str) -> Dict[str, Any]:
@@ -434,62 +484,62 @@ def robust_json_extraction(llm_response: str) -> Dict[str, Any]:
     # 5. raise ParseError if all methods fail
 ```
 
-### 6.2 Validation and Fallbacks
+### 7.2 Validation and Fallbacks
 
 ```python
-def validate_and_fix_tasks(tasks: List[Dict[str, Any]], available_tools: List[str]) -> List[GeneratedTask]:
-    """Validate tasks and attempt to fix common issues."""
+def validate_and_fix_task(task: Dict[str, Any], available_tools: List[str]) -> GeneratedTask:
+    """Validate task and attempt to fix common issues."""
     # pseudocode:
-    # for each task:
     # - check if required_tools exist in available_tools
     # - estimate steps if missing
-    # - assign category if missing
     # - fix common formatting issues
-    # - discard tasks that can't be fixed
+    # - raise ValidationError if task can't be fixed
 ```
 
-## 7. Future Enhancements
+## 8. Future Enhancements
 
-### 7.1 Advanced Features (Post-MVP)
+### 8.1 Advanced Features (Post-MVP)
 
-1. **Difficulty Progression**: Generate task sequences of increasing complexity
-2. **User Persona Integration**: Generate tasks based on user profiles (student, professional, etc.)
-3. **Temporal Awareness**: Generate time-sensitive tasks based on current time/date
-4. **Multi-turn Task Chains**: Generate related task sequences that build on each other
-5. **Constraint Satisfaction**: Ensure generated tasks can actually be completed with available tools
+1. **Randomized Sample Data**: Randomly select from larger pool of sample data entries
+2. **Difficulty Progression**: Generate tasks of varying complexity levels
+3. **User Persona Integration**: Generate tasks based on user profiles (student, professional, etc.)
+4. **Temporal Awareness**: Generate time-sensitive tasks based on current time/date
+5. **State Consistency**: Ensure generated tasks are consistent with current system state
+6. **Constraint Satisfaction**: Ensure generated tasks can actually be completed with available tools
 
-### 7.2 Performance Optimizations
+### 8.2 Performance Optimizations
 
 1. **Template Caching**: Cache formatted prompt templates
 2. **Batch Generation**: Generate multiple task sets in parallel
 3. **Smart Retries**: Implement exponential backoff with jitter
 4. **Response Caching**: Cache LLM responses for similar contexts
 
-## 8. Dependencies and Requirements
+## 9. Dependencies and Requirements
 
-### 8.1 New Dependencies
+### 9.1 New Dependencies
 - No new external dependencies required (reuse existing OpenAI, Anthropic clients)
 
-### 8.2 Internal Dependencies
-- `tool_sandbox.common.tool_discovery.get_all_tools`
+### 9.2 Internal Dependencies
+- `tool_sandbox.common.tool_discovery.get_tool_categories_tools_map` (for tool category/tools mapping)
 - `tool_sandbox.common.tool_conversion.get_tool_docs_natural_language`
-- `tool_sandbox.common.execution_context.get_current_context`
-- `tool_sandbox.roles.base_role.BaseRole`
+- `tool_sandbox.common.execution_context.ExecutionContext` (for system state and tool filtering)
+- `tool_sandbox.common.utils.deterministic_uuid` (for consistent sample data IDs)
 - Existing retry mechanisms from agent implementations
+- YAML prompt loading pattern from Hermes agent
 
-## 9. File Structure Summary
+## 10. File Structure Summary
 
 ```
 tool_sandbox/
 ├── common/
-│   └── execution_context.py          # Add TASK_GENERATOR role type
-├── roles/
-│   └── task_generator_role.py        # Main implementation (NEW)
+│   ├── task_generator.py               # Main utility class (NEW)
+│   ├── task_generator_sample_data.json # Sample data for population (NEW)
+│   └── task_generator_prompts.yaml    # Prompt templates (NEW)
 ├── cli/
-│   └── utils.py                      # Add factory mappings (OPTIONAL)
+│   └── utils.py                        # Optional CLI commands (OPTIONAL)
 └── tests/
-    └── roles/
-        └── task_generator_test.py    # Unit tests (NEW)
+    └── common/
+        └── task_generator_test.py      # Unit tests (NEW)
 ```
 
-This implementation plan provides a comprehensive foundation for the task generator role while maintaining consistency with the existing Tool Sandbox architecture and patterns.
+This implementation plan provides a utility-based approach for task generation that integrates with the existing Tool Sandbox architecture without polluting the conversational role system.

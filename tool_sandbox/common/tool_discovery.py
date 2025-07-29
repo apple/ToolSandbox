@@ -4,10 +4,14 @@ from collections import defaultdict
 from enum import auto
 from inspect import getmembers, getmodule, isfunction, ismodule
 from types import ModuleType
-from typing import Any, Callable, Iterable, Optional, Set
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, Set
 
+from attrs import define
 from rapidfuzz import fuzz, process, utils
 from strenum import StrEnum
+
+if TYPE_CHECKING:
+    from tool_sandbox.common.execution_context import DatabaseNamespace
 
 
 class ToolBackend(StrEnum):
@@ -17,6 +21,14 @@ class ToolBackend(StrEnum):
     """
 
     DEFAULT = auto()
+
+
+@define
+class ToolCategoryInfo:
+    """Information about a tool category."""
+
+    tools: dict[str, Callable[..., Any]]
+    database: Optional["DatabaseNamespace"]
 
 
 def get_all_tools(preferred_tool_backend: ToolBackend) -> dict[str, Callable[..., Any]]:
@@ -143,6 +155,58 @@ def find_tools_by_module(module: ModuleType, preferred_tool_backend: ToolBackend
         )[0][1]
 
     return preferred_tools_by_name
+
+
+def get_tool_categories_info(
+    preferred_tool_backend: ToolBackend = ToolBackend.DEFAULT,
+) -> dict[str, ToolCategoryInfo]:
+    """Get all available tool categories, their respective tools and the backing database if applicable.
+
+    Args:
+        preferred_tool_backend: Which backend should be chosen in face of conflicting tool names.
+
+    Returns:
+        Dict mapping tool category names to ToolCategoryInfo.
+    """
+    tools = get_all_tools(preferred_tool_backend)
+    tools_categories_map: dict[str, ToolCategoryInfo] = defaultdict(lambda: ToolCategoryInfo(tools={}, database=None))
+    for tool_name, tool_func in tools.items():
+        module = getmodule(tool_func)
+        if module is not None:
+            module_name = module.__name__.split(".")[-1]
+            tools_categories_map[module_name].tools[tool_name] = tool_func
+            if tools_categories_map[module_name].database is None:
+                tools_categories_map[module_name].database = _discover_database_for_module(module_name)
+
+    return tools_categories_map
+
+
+def _discover_database_for_module(module_name: str) -> Optional["DatabaseNamespace"]:
+    """Check if module has corresponding database namespace.
+
+    Args:
+        module_name: Name of the module to check for database namespace
+
+    Returns:
+        The database namespace for the module, or None if no database was found
+    """
+    from tool_sandbox.common.execution_context import DatabaseNamespace
+
+    # TODO: for now use a hardcoded mapping of module names to database namespaces
+    # Known mappings for existing modules
+    known_mappings = {
+        "contact": DatabaseNamespace.CONTACT,
+        "messaging": DatabaseNamespace.MESSAGING,
+        "reminder": DatabaseNamespace.REMINDER,
+        "setting": DatabaseNamespace.SETTING,
+        "user_tools": DatabaseNamespace.SANDBOX,
+        # These modules don't use databases
+        "rapid_api_search_tools": None,
+        "utilities": None,
+    }
+    if module_name in known_mappings:
+        return known_mappings[module_name]
+    return None
 
 
 def rank_tools_by_similarity(

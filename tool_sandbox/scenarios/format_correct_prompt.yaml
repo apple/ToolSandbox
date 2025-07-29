@@ -1,0 +1,21 @@
+format_correction: |-
+  Your previous response had formatting issues. Please fix the format and try again.
+
+  YOUR PREVIOUS RESPONSE:
+  {incorrect_response}
+
+  ERROR DETAILS:
+  {error_explanation}
+
+  REQUIRED FORMAT:
+  TASK: [clear, specific goal description]
+  TRAJECTORY: tool_name_1, tool_name_2, tool_name_3
+  CATEGORIES: category1, category2, category3
+
+  Please generate a new task following the exact format above.
+
+common_format_errors:
+  missing_fields: "Missing required fields. Must include TASK:, TRAJECTORY:, and CATEGORIES: sections."
+  invalid_trajectory_format: "TRAJECTORY must use format: tool_name_1 -> tool_name_2 -> tool_name_3"
+  nonexistent_tools: "TRAJECTORY contains tools that don't exist in the available tool set: {invalid_tools}"
+  category_mismatch: "CATEGORIES must match the requested tool categories: {expected_categories}"

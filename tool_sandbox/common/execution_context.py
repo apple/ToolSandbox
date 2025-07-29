@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from polars.type_aliases import IntoExprColumn
 
 
+# TODO: move all types and enums to a separate types file
 class DatabaseNamespace(StrEnum):
     """Namespace for each database."""
 
@@ -99,6 +100,7 @@ class ScenarioCategories(StrEnum):
     ARG_NAME_SCRAMBLED = auto()
     # Argument type annotations are removed
     ARG_TYPE_SCRAMBLED = auto()
+    # TODO: maybe a new scenario type for our user simulation study and goal inference
 
 
 TOOL_AUGMENTATION_TYPE = Literal[
