@@ -43,7 +43,7 @@ class DatabaseNamespace(StrEnum):
     CONTACT = auto()
     MESSAGING = auto()
     REMINDER = auto()
-    MAP = auto()
+    # MAP = auto()
 
 
 class RoleType(StrEnum):
@@ -190,14 +190,14 @@ class ExecutionContext:
             "longitude": pl.Float64,
         },
         # Add a maps database
-        DatabaseNamespace.MAP: {
-            "sandbox_message_index": pl.Int32,
-            "latitude": pl.Float64,  # maybe not needed
-            "longitude": pl.Float64,  # maybe not needed
-            "location_id": pl.String,
-            "name": pl.String,
-            "description": pl.String,
-        },
+        # DatabaseNamespace.MAP: {
+        #     "sandbox_message_index": pl.Int32,
+        #     "latitude": pl.Float64,  # maybe not needed
+        #     "longitude": pl.Float64,  # maybe not needed
+        #     "location_id": pl.String,
+        #     "name": pl.String,
+        #     "description": pl.String,
+        # },
     }
 
     def __init__(

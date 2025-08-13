@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 import polars as pl
+from dotenv import load_dotenv
 from tqdm import tqdm
 
 from tool_sandbox.cli.utils import (
@@ -187,6 +188,9 @@ def run_sandbox(
 
 def main() -> None:
     """Main entry point for Tool Sandbox."""
+    # Load environment variables from .env file
+    load_dotenv()
+
     random.seed(42)
     # ! replace key in dict.keys with key in dict
     parser = argparse.ArgumentParser(description=__doc__)

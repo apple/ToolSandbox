@@ -157,3 +157,5 @@ wandb/
 .DS_Store
 
 data/
+.claude/
+.gemini/

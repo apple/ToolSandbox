@@ -169,3 +169,9 @@ class GPT_4_o_2024_05_13_Agent(OpenAIAPIAgent):  # noqa: N801
     """GPT-4o 2024-05-13 agent."""
 
     model_name = "gpt-4o-2024-05-13"
+
+
+class O3_Mini_Agent(OpenAIAPIAgent):  # noqa: N801
+    """o3-mini agent."""
+
+    model_name = "o3-mini"

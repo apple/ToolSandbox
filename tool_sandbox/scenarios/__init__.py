@@ -8,6 +8,9 @@ import tool_sandbox.tools
 from tool_sandbox.common.execution_context import ScenarioCategories
 from tool_sandbox.common.scenario import Scenario
 from tool_sandbox.common.tool_discovery import ToolBackend, rank_tools_by_similarity
+from tool_sandbox.scenarios.goal_inference_scenarios import (
+    named_goal_inference_scenarios,
+)
 from tool_sandbox.scenarios.insufficient_information_scenarios import (
     named_insufficient_information_scenarios,
 )
@@ -41,6 +44,7 @@ def named_scenarios(
         named_multiple_tool_call_scenarios(preferred_tool_backend=preferred_tool_backend),
         named_multiple_user_turn_scenarios(preferred_tool_backend=preferred_tool_backend),
         named_insufficient_information_scenarios(preferred_tool_backend=preferred_tool_backend),
+        named_goal_inference_scenarios(preferred_tool_backend=preferred_tool_backend),
     ]:
         conflicting_names: Set[str] = set(scenarios.keys()) & set(new_scenarios.keys())
         if conflicting_names:
