@@ -351,9 +351,6 @@ class TaskGenerator(ABC):
                 return self._summarize_setting_database(db)
             case DatabaseNamespace.SANDBOX:
                 return self._summarize_sandbox_database(db)
-            case _:
-                # Fallback for unknown database types
-                return f"{database.value} database has {len(db) - 1} entries."
 
     def _summarize_contact_database(self, db: pl.DataFrame) -> str:
         """Summarize contact database content.

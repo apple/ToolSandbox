@@ -79,6 +79,8 @@ class ScenarioCategories(StrEnum):
     DISAMBIGUATION = auto()
     # Scenario that cannot be completed with the provided tools / user prompts
     INSUFFICIENT_INFORMATION = auto()
+    # Scenario designed for goal inference research - tests LLM ability to infer user goals from tool usage patterns
+    GOAL_INFERENCE = auto()
     # Tool augmentations
     # All tools provided are necessary to complete the scenario
     NO_DISTRACTION_TOOLS = auto()

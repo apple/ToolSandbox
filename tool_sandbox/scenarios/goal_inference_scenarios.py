@@ -1208,6 +1208,7 @@ def named_goal_inference_scenarios(
         for default_categories in [
             ScenarioCategories.MULTIPLE_TOOL_CALL,
             ScenarioCategories.SINGLE_USER_TURN,
+            ScenarioCategories.GOAL_INFERENCE,
         ]:
             if default_categories not in extension.categories:
                 extension.categories.append(default_categories)

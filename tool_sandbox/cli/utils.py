@@ -110,8 +110,8 @@ def resolve_scenarios(
     """Resolve the scenarios to run.
 
     Args:
-        desired_scenario_names: Name of scenarios to run. If empty all scenarios will be
-                                returned.
+        desired_scenario_names: Name of scenarios to run or category names to filter by.
+                                If empty all scenarios will be returned.
         preferred_tool_backend: Which backend should be chosen in face of conflicting tool names.
 
     Returns:
@@ -121,17 +121,36 @@ def resolve_scenarios(
         # No filtering needed. Return all scenarios.
         return named_scenarios(preferred_tool_backend=preferred_tool_backend)
 
-    name_to_scenario = {
-        name: scenario
-        for name, scenario in named_scenarios(preferred_tool_backend=preferred_tool_backend).items()
-        if name in desired_scenario_names
-    }
+    all_scenarios = named_scenarios(preferred_tool_backend=preferred_tool_backend)
 
-    # Raise an exception if not all desired scenarios exist, e.g. to fail if there was a
-    # typo in the scenario names of the CLI command.
-    if len(desired_scenario_names) != len(name_to_scenario):
-        missing_scenarios = set(desired_scenario_names) - set(name_to_scenario.keys())
-        raise KeyError(f"The following desired scenarios do not exist: {sorted(list(missing_scenarios))}")  # noqa: C414
+    # Check if any of the desired names are category names
+    category_names = {str(cat) for cat in ScenarioCategories}
+    categories_requested = [name for name in desired_scenario_names if name in category_names]
+    scenario_names_requested = [name for name in desired_scenario_names if name not in category_names]
+
+    name_to_scenario = {}
+
+    # Add scenarios by specific names
+    for name in scenario_names_requested:
+        if name in all_scenarios:
+            name_to_scenario[name] = all_scenarios[name]
+
+    # Add scenarios by categories
+    for category_name in categories_requested:
+        category = ScenarioCategories(category_name)
+        for name, scenario in all_scenarios.items():
+            if category in scenario.categories:
+                name_to_scenario[name] = scenario
+
+    # Raise an exception if not all desired scenarios/categories exist
+    all_requested = set(scenario_names_requested + categories_requested)
+    found_scenarios = set(scenario_names_requested) & set(all_scenarios.keys())
+    found_categories = set(categories_requested) & category_names
+    missing_items = all_requested - found_scenarios - found_categories
+
+    if missing_items:
+        raise KeyError(f"The following desired scenarios/categories do not exist: {sorted(missing_items)}")
+
     return name_to_scenario
 
 

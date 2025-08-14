@@ -53,6 +53,10 @@ def named_scenarios(
     # Add tool augmentations
     names = list(scenarios.keys())
     for name in names:
+        # Skip augmentation for GOAL_INFERENCE scenarios
+        if ScenarioCategories.GOAL_INFERENCE in scenarios[name].categories:
+            scenarios[name].categories.append(ScenarioCategories.NO_DISTRACTION_TOOLS)
+            continue
         similar_tools = rank_tools_by_similarity(
             scenarios[name].starting_context.tool_allow_list,
             tool_sandbox.tools,
