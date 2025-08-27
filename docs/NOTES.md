@@ -1,0 +1,14 @@
+# Running notes for my reference
+
+Goal Inference tasks
+
+1. connectivity_check_location_share
+2. coordinate_ride_with_distance
+3. dentist_appointment_location_services
+4. dinner_plan_review_and_confirmation
+5. dinner_plans_charlie_reminder
+6. doctor_appointment_location_family_notify
+7. doctor_appointment_timestamp_emergency_contact
+8. friend_arrival_contact_and_reminder
+9. long_drive_preparation_multiple_settings
+10. office_meeting_distance_timed_reminder

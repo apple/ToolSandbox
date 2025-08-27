@@ -70,12 +70,12 @@ ALL_AGENT_TOOLS = [
     "unit_conversion",
     "calculate_lat_lon_distance",
     "search_holiday",
-    # RapidAPI search tools
-    "search_lat_lon",
-    "search_location_around_lat_lon",
-    "search_weather_around_lat_lon",
-    "search_stock",
-    "convert_currency",
+    # RapidAPI search tools (NOT USED CURRENTLY)
+    # "search_lat_lon",
+    # "search_location_around_lat_lon",
+    # "search_weather_around_lat_lon",
+    # "search_stock",
+    # "convert_currency",
 ]
 
 
