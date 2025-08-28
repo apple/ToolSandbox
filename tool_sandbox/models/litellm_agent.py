@@ -85,7 +85,7 @@ class LiteLLMAgent(BaseRole):
         litellm_messages = to_litellm_messages(messages)
 
         # Call model
-        response = self.litellm_model.query_with_tools(messages=litellm_messages, tools=tools)
+        response = self.litellm_model.query(messages=litellm_messages, tools=tools)
 
         # Convert response back to ToolSandbox messages
         current_context = get_current_context()

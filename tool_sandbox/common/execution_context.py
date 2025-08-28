@@ -763,7 +763,7 @@ def new_context(context: ExecutionContext) -> Iterator[ExecutionContext]:
 
 
 @contextlib.contextmanager
-def new_context_with_attribute(**kwargs: int) -> Iterator[ExecutionContext]:
+def new_context_with_attribute(**kwargs: Any) -> Iterator[ExecutionContext]:  # noqa: ANN401
     """Handy context manager which modifies _global_execution_context given new attributes listed in kwargs, and reverts after context exit.
 
     Args:

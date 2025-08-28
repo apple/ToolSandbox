@@ -14,6 +14,8 @@ from tool_sandbox.common.tool_conversion import (
     maybe_scramble_arg_description,
     maybe_scramble_arg_type,
     maybe_scramble_tool_description,
+    parse_openai_tool_call_arguments,
+    tool_call_to_python_string,
 )
 from tool_sandbox.common.tool_discovery import ToolBackend, get_all_tools
 from tool_sandbox.tools.contact import add_contact, modify_contact
@@ -263,3 +265,100 @@ def test_maybe_scramble_arg_type() -> None:
         tool_augmentation_list=[ScenarioCategories.ARG_TYPE_SCRAMBLED],
     ):
         assert parameter.annotation is type(None)
+
+
+class TestParseOpenaiToolCallArguments:
+    """Tests for parse_openai_tool_call_arguments function."""
+
+    def test_parse_simple_arguments(self) -> None:
+        """Test parsing simple JSON arguments."""
+        json_string = '{"name": "Alex"}'
+        result = parse_openai_tool_call_arguments(json_string)
+        assert result == {"name": "Alex"}
+
+    def test_parse_multiple_arguments(self) -> None:
+        """Test parsing multiple arguments."""
+        json_string = '{"sender_person_id": "123", "content": "dinner"}'
+        result = parse_openai_tool_call_arguments(json_string)
+        assert result == {"sender_person_id": "123", "content": "dinner"}
+
+    def test_parse_empty_arguments(self) -> None:
+        """Test parsing empty arguments."""
+        json_string = "{}"
+        result = parse_openai_tool_call_arguments(json_string)
+        assert result == {}
+
+    def test_parse_invalid_json(self) -> None:
+        """Test parsing invalid JSON raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid JSON in tool call arguments"):
+            parse_openai_tool_call_arguments('{"invalid": json}')
+
+    def test_parse_non_object_json(self) -> None:
+        """Test parsing JSON that's not an object raises TypeError."""
+        with pytest.raises(TypeError, match="Expected JSON object, got"):
+            parse_openai_tool_call_arguments('[1, 2, 3]')  # Valid JSON but not an object
+
+
+class TestToolCallToPythonString:
+    """Tests for tool_call_to_python_string function."""
+
+    def test_no_arguments(self) -> None:
+        """Test tool call with no arguments."""
+        result = tool_call_to_python_string("get_current_timestamp", {})
+        assert result == "get_current_timestamp()"
+
+    def test_string_argument(self) -> None:
+        """Test tool call with string argument."""
+        result = tool_call_to_python_string("search_contacts", {"name": "Alex"})
+        assert result == "search_contacts(name='Alex')"
+
+    def test_string_with_quotes(self) -> None:
+        """Test string argument containing single quotes."""
+        result = tool_call_to_python_string("send_message", {"content": "It's great!"})
+        assert result == "send_message(content='It\\'s great!')"
+
+    def test_multiple_arguments(self) -> None:
+        """Test tool call with multiple arguments."""
+        result = tool_call_to_python_string(
+            "search_messages",
+            {"sender_person_id": "123", "content": "dinner"}
+        )
+        assert result == "search_messages(sender_person_id='123', content='dinner')"
+
+    def test_boolean_arguments(self) -> None:
+        """Test tool call with boolean arguments."""
+        result = tool_call_to_python_string("add_contact", {"is_self": True})
+        assert result == "add_contact(is_self=True)"
+
+    def test_numeric_arguments(self) -> None:
+        """Test tool call with numeric arguments."""
+        result = tool_call_to_python_string(
+            "shift_timestamp",
+            {"timestamp": 1755203140.290294, "days": 1}
+        )
+        assert result == "shift_timestamp(timestamp=1755203140.290294, days=1)"
+
+    def test_none_argument(self) -> None:
+        """Test tool call with None argument."""
+        result = tool_call_to_python_string("add_reminder", {"latitude": None})
+        assert result == "add_reminder(latitude=None)"
+
+    def test_complex_argument(self) -> None:
+        """Test tool call with complex argument (uses repr)."""
+        result = tool_call_to_python_string("complex_call", {"data": [1, 2, 3]})
+        assert result == "complex_call(data=[1, 2, 3])"
+
+    def test_mixed_arguments(self) -> None:
+        """Test tool call with mixed argument types."""
+        result = tool_call_to_python_string(
+            "add_reminder",
+            {
+                "content": "Check dinner",
+                "reminder_timestamp": 1755289540.290294,
+                "latitude": None,
+                "is_active": True
+            }
+        )
+        expected = ("add_reminder(content='Check dinner', "
+                   "reminder_timestamp=1755289540.290294, latitude=None, is_active=True)")
+        assert result == expected

@@ -6,6 +6,7 @@ Modified to allow for tool augmentations
 """
 
 import inspect
+import json
 import re
 from typing import (
     Any,
@@ -433,3 +434,63 @@ def convert_to_openai_tools(
         A list of OpenAI tools.
     """
     return [convert_to_openai_tool(tool, name) for name, tool in name_to_tool.items()]
+
+
+def parse_openai_tool_call_arguments(arguments_json_string: str) -> dict[str, Any]:
+    """Parse OpenAI tool call arguments from JSON string to dictionary.
+
+    Args:
+        arguments_json_string: JSON string containing tool call arguments
+
+    Returns:
+        Parsed arguments as dictionary
+
+    Raises:
+        ValueError: If JSON string is invalid
+        TypeError: If JSON result is not a dictionary
+    """
+    try:
+        result = json.loads(arguments_json_string)
+        if isinstance(result, dict):
+            return result
+        else:
+            raise TypeError(f"Expected JSON object, got {type(result)}: {arguments_json_string}")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in tool call arguments: {arguments_json_string}") from e
+
+
+def tool_call_to_python_string(tool_name: str, arguments: dict[str, Any]) -> str:
+    """Convert tool call to Python function call string.
+
+    Args:
+        tool_name: Name of the tool/function
+        arguments: Dictionary of function arguments
+
+    Returns:
+        Python function call string, e.g., "search_contacts(name='Alex')"
+    """
+    if not arguments:
+        return f"{tool_name}()"
+
+    # Convert arguments to string representations
+    arg_strings = []
+    for key, value in arguments.items():
+        if isinstance(value, str):
+            # Escape single quotes and wrap in single quotes
+            escaped_value = value.replace("'", "\\'")
+            arg_strings.append(f"{key}='{escaped_value}'")
+        elif isinstance(value, bool):
+            # Python boolean representation
+            arg_strings.append(f"{key}={value}")
+        elif isinstance(value, (int, float)):
+            # Numeric values
+            arg_strings.append(f"{key}={value}")
+        elif value is None:
+            # None values
+            arg_strings.append(f"{key}=None")
+        else:
+            # For complex types, use repr
+            arg_strings.append(f"{key}={value!r}")
+
+    args_str = ", ".join(arg_strings)
+    return f"{tool_name}({args_str})"

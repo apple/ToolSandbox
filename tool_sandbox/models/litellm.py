@@ -96,7 +96,7 @@ class LiteLLMModel:
             )
         ),
     )
-    def query_with_tools(
+    def query(
         self,
         messages: list[dict[str, Any]],
         tools: Optional[list[dict[str, Any]]] = None,

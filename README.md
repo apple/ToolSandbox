@@ -104,6 +104,32 @@ env OPENAI_API_KEY=<YOUR_OPENAI_API_KEY> RAPID_API_KEY=<YOUR_RAPID_API_KEY> tool
 ```
 Notebooks for introspecting and comparing the results can be found [here](tool_sandbox%2Fnotebooks).
 
+#### Trajectory Analysis for Goal Inference Research
+ToolSandbox includes specialized tools for parsing trajectory data optimized for goal inference research. The trajectory parser extracts step-by-step tool calls and their database effects from ToolSandbox execution results:
+
+```python
+from tool_sandbox.analysis.trajectory_parser import parse_trajectory_for_goal_inference
+
+# Parse a trajectory folder containing conversation.json and execution_context.json
+trajectory_path = "data/agent_o3-mini_user_gpt-4o-2024-05-13_08_14_2025_14_30_58/trajectories/dinner_plan_review_and_confirmation"
+parsed_trajectory = parse_trajectory_for_goal_inference(trajectory_path)
+
+# Access step-by-step tool calls with their database effects
+for step in parsed_trajectory.steps:
+    tool_call = step.tool_call
+    database_changes = step.database_changes
+
+    print(f"Tool: {tool_call.python_function_string}")
+    print(f"Database changes: {list(database_changes.keys())}")
+```
+
+Key features of the trajectory parser:
+- **Step-by-step structure**: Each tool call is directly associated with its database effects
+- **Pre-conversation filtering**: Excludes setup messages to focus on actual user-agent interaction
+- **Database diffs**: Shows actual changes rather than complete snapshots for efficient analysis
+- **Goal inference optimization**: Structured for feeding into goal inference models
+- **Research integration**: Compatible with existing analysis pipeline and future proactive agents
+
 #### Development setup
 1. Setup pre-commit hooks. Includes multiple linters
 ```bash
@@ -552,6 +578,38 @@ shape: (15, 5)
 }
 ```
 
+## Trajectory Parser for Goal Inference Research
+
+ToolSandbox includes utilities for parsing trajectory data to support goal inference research - investigating whether LLMs can accurately infer user goals from observing tool call sequences.
+
+### Usage
+
+```python
+from tool_sandbox.analysis.trajectory_parser import parse_trajectory_for_goal_inference
+
+# Parse a trajectory folder containing conversation.json and execution_context.json
+parsed = parse_trajectory_for_goal_inference('/path/to/trajectory/folder')
+
+# Access tool calls as clean Python function strings
+for tool_call in parsed.tool_calls:
+    print(f"Step {tool_call.sequence_index}: {tool_call.python_function_string}")
+    # Example output: "Step 0: search_contacts(name='Alex')"
+
+# Access database changes (diffs) made by tool calls
+for db_name, changes in parsed.database_changes.items():
+    print(f"{db_name} had {len(changes)} changes")
+    for change in changes:
+        print(f"  Message {change.message_index}: {len(change.data)} records changed")
+```
+
+### Key Components
+
+- **Goal Inference Data Structures**: Optimized representations for tool calls and database states
+- **Tool Call Conversion**: Functions to convert OpenAI tool calls to Python function strings
+- **Database Change Tracking**: Actual changes/diffs made by tool calls, not complete snapshots
+- **Research Integration**: Compatible with existing analysis pipeline and future proactive agents
+
+This parser enables research into proactive AI assistance by providing structured access to tool call sequences and their effects on the world state.
 
 ## Citation
 
