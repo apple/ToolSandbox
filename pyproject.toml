@@ -1,7 +1,3 @@
-# For licensing see accompanying LICENSE file.
-# Copyright (C) 2024 Apple Inc. All Rights Reserved.
-# Adapted from: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
-
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
@@ -13,7 +9,7 @@ description = "A controllable, stateful and interactive sandbox for agent evalua
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
-    { name = "Jiarui Lu", email = "jiarui_lu@apple.com" }
+    { name = "Deepak Nathani", email = "dnathani@ucsb.edu" }
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -36,9 +32,11 @@ dependencies = [
     "jsonschema==4.19.2",
     "jupyter>=1.1.1",
     "langchain==0.1.3",
+    "litellm>=1.41.1",
     "networkx==3.2.1",
     "numpy==1.26.4",
-    "openai>=1.97.1",
+    # pin openai version to 1.97.1 to avoid breaking changes
+    "openai==1.97.1",
     "pandas>=2.3.1",
     "phonenumbers==8.13.39",
     "pint==0.23",

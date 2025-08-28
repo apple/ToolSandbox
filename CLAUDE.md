@@ -187,6 +187,8 @@ Focus on scenarios that create good goal inference opportunities:
 - Use f-strings for string formatting
 - Follow existing patterns in tool registration and database interactions
 - Tools must be defensive against invalid inputs and raise appropriate exceptions
+- When writing new files, do not add copyright notices.
+- When editing existing files, do not remove copyright notices.
 
 ### Linting and Formatting Guidelines
 - **No trailing whitespace** - Remove any spaces at the end of lines

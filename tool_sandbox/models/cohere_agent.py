@@ -1,16 +1,11 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2024 Apple Inc. All Rights Reserved.
-"""Agent role for Hermes model.
+"""Agent role for the Cohere models hosted as OpenAI compatible servers using vLLM."""
 
-Ref: https://github.com/NousResearch/Hermes-Function-Calling
-"""
-
-import copy
 import json
 import os
-from typing import Any, Literal, Optional, Union, cast
+from typing import Any, Iterable, Literal, Optional, Union, cast
 
-import yaml
 from openai import NOT_GIVEN, NotGiven, OpenAI
 from openai.types.chat import ChatCompletionToolParam
 from openai.types.chat.chat_completion import ChatCompletion, Choice
@@ -28,6 +23,7 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )
+from transformers import AutoTokenizer  # type: ignore
 
 from tool_sandbox.common.execution_context import RoleType, get_current_context
 from tool_sandbox.common.message_conversion import (
@@ -36,172 +32,119 @@ from tool_sandbox.common.message_conversion import (
     to_openai_messages,
 )
 from tool_sandbox.common.tool_conversion import convert_to_openai_tools
-from tool_sandbox.roles.base_role import BaseRole
-
-ims_token = "<|im_start|>"
-ime_token = "<|im_end|>"
-tcs_token = "<tool_call>"
-tce_token = "</tool_call>"
-trs_token = "<tool_response>"
-tre_token = "</tool_response>"
-ts_token = "<tools>"
-te_token = "</tools>"
-system_role_token = "system"
-user_role_token = "user"
-assistent_role_token = "assistant"
-tool_role_token = "tool"
-role_tokens = [
-    system_role_token,
-    user_role_token,
-    assistent_role_token,
-    tool_role_token,
-]
+from tool_sandbox.models.base_role import BaseRole
 
 
-def _extract_tools_string(tools: list[ChatCompletionToolParam]) -> str:
-    return json.dumps(tools[0] if len(tools) == 1 else tools)
+def _get_cohere_tokenizer_name(model_name: str) -> str:
+    if model_name == "c4ai-command-r-plus":
+        return "CohereForAI/c4ai-command-r-plus"
+    if model_name == "c4ai-command-r-v01":
+        return "CohereForAI/c4ai-command-r-v01"
+
+    raise RuntimeError(f"Update the code to select a tokenizer for model '{model_name}'.")
 
 
-def _create_system_message(prompt_templates: dict[str, str], tools: str) -> str:
-    system_prompt = ""
-    system_prompt += prompt_templates["system"].format(**{"tools": tools}).strip().replace("\n", " ") + "\n"
-    system_prompt += prompt_templates["system_tool_call_example"].strip()
+def to_cohere_tool(openai_tool: ChatCompletionToolParam) -> dict[str, Any]:
+    """Convert OpenAI to Cohere tool format."""
+    assert (
+        openai_tool["type"] == "function"
+    ), f"Object to convert to Cohere tool format is not a valid OpenAI tool:\n{openai_tool}"
 
-    return system_prompt
+    # Cohere uses its own tool format, see https://docs.cohere.com/docs/tool-use#step-1
+    # The main differences compared to the OpenAI format are:
+    #  - The `parameters` key is called `parameter_definitions`
+    #  - Whether or not an argument is required is stored within each entry in the
+    #    `parameter_definitions` whereas OpenAI stores this separately from the argument
+    #    name, type and documentation.
 
-
-def _create_instruct_message(content: str, role: str) -> str:
-    assert role in role_tokens, f"Unexpected role: {role}"
-    return ims_token + role + "\n" + content + ime_token + "\n"
-
-
-def _create_tool_result_message(
-    message: dict[
-        Literal["role", "content", "tool_call_id", "name", "tool_calls"],
-        Any,
-    ],
-) -> str:
-    content = message.get("content")
-    if content is None:
-        result_content = ""
-    else:
-        try:
-            result_content = json.loads(content)
-        except json.decoder.JSONDecodeError:
-            # Still return the content even if it is not a json string.
-            result_content = content
-    result_dict = {"name": message["name"], "content": result_content}
-    content = trs_token + "\n" + json.dumps(result_dict) + "\n" + tre_token
-    return _create_instruct_message(content, "tool")
-
-
-def _create_assistant_message(
-    message: dict[
-        Literal["role", "content", "tool_call_id", "name", "tool_calls"],
-        Any,
-    ],
-) -> str:
-    if "tool_calls" in message:
-        content = ""
-        for idx, tc in enumerate(message["tool_calls"]):
-            ff = copy.deepcopy(tc["function"])
-            if "arguments" in ff and isinstance(ff["arguments"], str):
-                ff["arguments"] = json.loads(ff["arguments"])
-            content += tcs_token + "\n" + json.dumps(ff) + "\n" + tce_token
-            if idx + 1 < len(message["tool_calls"]):
-                content += "\n"
-        return _create_instruct_message(content, "assistant")
-    return _create_instruct_message(message["content"], "assistant")
+    openai_function = openai_tool["function"]
+    cohere_tool: dict[str, Any] = {
+        "name": openai_function["name"],
+        "description": openai_function.get("description", "No description available."),
+        "parameter_definitions": {},
+    }
+    openai_properties = cast("dict[str, Any]", openai_function["parameters"]["properties"])
+    for arg_name, arg_properties in openai_properties.items():
+        # There are tool augmentations where the argument type and/or description
+        # information is being removed.
+        is_required = arg_name in cast("list[str]", openai_function["parameters"]["required"])
+        cohere_tool["parameter_definitions"][arg_name] = {
+            "description": arg_properties.get("description", "No description available."),
+            "type": arg_properties.get("type", "object"),
+            "required": is_required,
+        }
+    return cohere_tool
 
 
-def _convert_request_message(
-    message: dict[
-        Literal["role", "content", "tool_call_id", "name", "tool_calls"],
-        Any,
-    ],
-) -> str:
-    if message["role"] == "tool":
-        return _create_tool_result_message(message)
-    if message["role"] == "assistant":
-        return _create_assistant_message(message)
-    return _create_instruct_message(message["content"], message["role"])
-
-
-def _create_prompt(
-    prompt_templates: dict[str, str],
+def create_prompt(
+    tokenizer: AutoTokenizer,
     openai_messages: list[
         dict[
             Literal["role", "content", "tool_call_id", "name", "tool_calls"],
             Any,
         ]
     ],
-    openai_tools: list[ChatCompletionToolParam],
-    add_generation_token: bool,
+    openai_tools: Union[Iterable[ChatCompletionToolParam], NotGiven],
 ) -> str:
-    """Creates completion prompt for hermes from a given request.
+    """Process request and fill the prompt for Cohere.
 
     Args:
-        prompt_templates: The predefined prompt templates
-        openai_messages: The OpenAI messages
-        openai_tools: The OpenAI tools
-        add_generation_token: A flag to denote if the generation triggering token should be
-                              added.
+        tokenizer: A tokenizer for the model.
+        openai_messages: A list of OpenAI style messages.
+        openai_tools: A list of OpenAI style tools.
 
     Returns:
-        The prompt to query the hermes model.
+        A string prompt for the model.
     """
-    prompt = ""
+    cohere_tools = [to_cohere_tool(tool) for tool in openai_tools] if openai_tools else []
 
-    tools = _extract_tools_string(openai_tools)
-    system_msg = _create_system_message(prompt_templates, tools)
-    prompt += _create_instruct_message(system_msg, system_role_token)
-
-    for m in openai_messages:
-        prompt += _convert_request_message(m)
-
-    if add_generation_token:
-        prompt += ims_token + assistent_role_token + "\n"
-
+    prompt = tokenizer.apply_tool_use_template(
+        conversation=openai_messages,
+        tools=cohere_tools,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+    # Since `tokenize==False` the prompt should be of type string.
+    assert isinstance(prompt, str), type(prompt)
+    # Remove the BOS token since it will be applied by the inference engine.
+    assert prompt.startswith(tokenizer.bos_token)
+    prompt = prompt[len(tokenizer.bos_token) :]
     return prompt
 
 
 def to_chat_completion_message(choice: CompletionChoice) -> ChatCompletionMessage:
-    """Parses the response text and construct a chat completion message including the tool calls from the response.
+    """Convert a CompletionChoice to a ChatCompletionMessage.
 
     Args:
-        choice: The completion choice.
+        choice: A CompletionChoice object.
 
     Returns:
-        A chat completion message containing the tool calls.
+        A ChatCompletionMessage object.
     """
 
+    def _parse_tools(text: str) -> list[dict[str, Any]]:
+        prefix = "Action: ```json"
+        suffix = "```"
+        is_tool = text.startswith(prefix) and text.endswith(suffix)
+        if not is_tool:
+            return []
+
+        tool_call_str = text[len(prefix) : len(text) - len(suffix)]
+        try:
+            return cast(
+                "list[dict[str, Any]]",
+                json.loads(tool_call_str),
+            )
+        except Exception as e:
+            raise RuntimeError(f"Error parsing tool call string '{tool_call_str}'.") from e
+
     def _convert_tool(tool: dict[str, Any], idx: int) -> ChatCompletionMessageToolCall:
-        function = Function(name=tool["name"], arguments=json.dumps(tool["arguments"]))
+        function = Function(name=tool["tool_name"], arguments=json.dumps(tool["parameters"]))
         return ChatCompletionMessageToolCall(id=f"call_{idx}", function=function, type="function")
 
-    text = choice.text
-
-    cur = 0
-    tool_calls = []
-    while True:
-        i1 = text.find(tcs_token, cur)
-        if i1 == -1:
-            break
-        start = i1 + len(tcs_token)
-        i2 = text.find(tce_token, start)
-        if i2 == -1:
-            raise ValueError(f"No end token {tce_token} found.")
-        assert i2 != -1
-        cur = i2 + len(tce_token)
-        try:
-            tool_calls.append(json.loads(text[start:i2]))
-        except json.JSONDecodeError as e:
-            raise RuntimeError(f"'{text[start:i2]}' is not valid JSON") from e
-    content = ""
-    if not tool_calls and text:
-        content = text
-
-    tool_calls = [_convert_tool(t, idx) for idx, t in enumerate(tool_calls, start=1)]
+    tool_call_dicts = _parse_tools(choice.text)
+    tool_calls = [_convert_tool(t, idx) for idx, t in enumerate(tool_call_dicts)]
+    content = choice.text if len(tool_calls) == 0 else ""
     return ChatCompletionMessage(role="assistant", content=content, tool_calls=tool_calls)
 
 
@@ -229,43 +172,36 @@ def completion_to_chat_completion(response: Completion) -> ChatCompletion:
     return completion_response
 
 
-class HermesAPIAgent(BaseRole):
-    """Agent role for Hermes."""
+class CohereAgent(BaseRole):
+    """Cohere agent using models hosted as an OpenAI compatible server using vLLM."""
 
     role_type: RoleType = RoleType.AGENT
     model_name: str
 
     def __init__(self, model_name: str) -> None:
-        """Initialize the Hermes API agent."""
+        """Initialize the Cohere agent."""
         super().__init__()
 
         self.model_name = model_name
         assert "OPENAI_BASE_URL" in os.environ, "The `OPENAI_BASE_URL` environment variable must be set."
         self.client = OpenAI(api_key="EMPTY")
 
-        prompts_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "hermes_prompts.yaml",
-        )
-        with open(prompts_file, "r", encoding="utf-8") as file:
-            self.prompt_templates = yaml.safe_load(file)
+        model_id = _get_cohere_tokenizer_name(self.model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     def respond(self, ending_index: Optional[int] = None) -> None:
         """Reads a List of messages and attempt to respond with a Message.
 
         Specifically, interprets system, user, execution environment messages and sends out NL response to user, or
         code snippet to execution environment.
-
         Message comes from current context, the last k messages should be directed to this role type
         Response are written to current context as well. n new messages, addressed to appropriate recipient
         k != n when dealing with parallel function call and responses. Parallel function call are expanded into
         individual messages, parallel function call responses are combined as 1 OpenAI API request
-
         Args:
             ending_index:   Optional index. Will respond to message located at ending_index instead of most recent one
                             if provided. Utility for processing system message, which could contain multiple entries
                             before each was responded to
-
         Raises:
             KeyError:   When the last message is not directed to this role
         """
@@ -287,25 +223,23 @@ class HermesAPIAgent(BaseRole):
         )
         # We need a cast here since `convert_to_openai_tool` returns a plain dict, but
         # `ChatCompletionToolParam` is a `TypedDict`.
+        # ? mypy complains that cast has incompatible types.
         openai_tools = cast(
-            "Union[list[ChatCompletionToolParam], NotGiven]",
+            "Union[Iterable[ChatCompletionToolParam], NotGiven]",
             openai_tools,
         )  # type: ignore
         # Convert to OpenAI messages.
         current_context = get_current_context()
         openai_messages, _ = to_openai_messages(messages)
         # Call model
-        hermes_response = self.model_inference(
-            openai_messages=openai_messages,
-            openai_tools=openai_tools,  # type: ignore
-        )
+        cohere_response = self.model_inference(openai_messages=openai_messages, openai_tools=openai_tools)  # type: ignore
 
         # Parse response
-        openai_response = completion_to_chat_completion(hermes_response)
+        openai_response = completion_to_chat_completion(cohere_response)
         openai_response_message = openai_response.choices[0].message
 
         # Message contains no tool call, aka addressed to user
-        if not openai_response_message.tool_calls:
+        if openai_response_message.tool_calls is None:
             assert openai_response_message.content is not None
             response_messages = [
                 Message(
@@ -348,27 +282,21 @@ class HermesAPIAgent(BaseRole):
                 Any,
             ]
         ],
-        openai_tools: Union[list[ChatCompletionToolParam], NotGiven],
+        openai_tools: Union[Iterable[ChatCompletionToolParam], NotGiven],
     ) -> Completion:
-        """Run Hermes model inference.
+        """Run Cohere model inference.
 
         Args:
             openai_messages:    List of OpenAI API format messages
             openai_tools:       List of OpenAI API format tools definition
-
         Returns:
             OpenAI API chat completion object
         """
-        prompt = _create_prompt(
-            self.prompt_templates,
-            openai_messages=openai_messages,
-            openai_tools=openai_tools if openai_tools else [],
-            add_generation_token=True,
-        )
-        hermes_response = self.client.completions.create(
+        prompt = create_prompt(self.tokenizer, openai_messages, openai_tools)
+        cohere_response = self.client.completions.create(
             prompt=prompt,
             model=self.model_name,
-            max_tokens=2048,
+            max_tokens=1024,
             temperature=0.0,
         )
-        return hermes_response
+        return cohere_response

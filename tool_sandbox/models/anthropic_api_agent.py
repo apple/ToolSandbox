@@ -20,8 +20,8 @@ from tenacity import (
 
 from tool_sandbox.common.execution_context import RoleType, get_current_context
 from tool_sandbox.common.message_conversion import Message
-from tool_sandbox.roles.anthropic_tool_utils import convert_to_anthropic_tool
-from tool_sandbox.roles.base_role import BaseRole
+from tool_sandbox.models.anthropic_tool_utils import convert_to_anthropic_tool
+from tool_sandbox.models.base_role import BaseRole
 
 LOGGER = logging.getLogger(__name__)
 

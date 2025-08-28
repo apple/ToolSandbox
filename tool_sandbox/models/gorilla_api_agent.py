@@ -33,7 +33,7 @@ from tool_sandbox.common.message_conversion import (
     to_openai_messages,
 )
 from tool_sandbox.common.tool_conversion import convert_to_openai_tools
-from tool_sandbox.roles.base_role import BaseRole
+from tool_sandbox.models.base_role import BaseRole
 
 
 # From https://github.com/ShishirPatil/gorilla/blob/main/openfunctions/utils/python_parser.py

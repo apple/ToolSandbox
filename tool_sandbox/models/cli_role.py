@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from tool_sandbox.common.execution_context import RoleType
 from tool_sandbox.common.message_conversion import Message
-from tool_sandbox.roles.base_role import BaseRole
+from tool_sandbox.models.base_role import BaseRole
 
 LOGGER = getLogger(__name__)
 

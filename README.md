@@ -39,18 +39,26 @@ The following table shows the required environment variables to set depending on
 | Claude_3_Haiku        | ✅                |          |                |                 |                                             |                                        |
 | Claude_3_Opus         | ✅                |          |                |                 |                                             |                                        |
 | Claude_3_Sonnet       | ✅                |          |                |                 |                                             |                                        |
+| ClaudeHaikuLiteLLM    | ✅                |          |                |                 |                                             |                                        |
+| ClaudeOpusLiteLLM     | ✅                |          |                |                 |                                             |                                        |
+| ClaudeLiteLLM         | ✅                |          |                |                 |                                             |                                        |
 | Cli                   |                   |          |                |                 |                                             |                                        |
 | Cohere_Command_R      |                   |          |                | ✅              |                                             |                                        |
 | Cohere_Command_R_Plus |                   |          |                | ✅              |                                             |                                        |
+| GeminiFlashLiteLLM    |                   |          |                |                 | ✅                                          | ✅                                     |
+| GeminiProLiteLLM      |                   |          |                |                 | ✅                                          | ✅                                     |
 | GPT_3_5_0125          |                   |          | ✅             |                 |                                             |                                        |
 | GPT_4_0125            |                   |          | ✅             |                 |                                             |                                        |
 | GPT_4_o_2024_05_13    |                   |          | ✅             |                 |                                             |                                        |
+| GPT4LiteLLM           |                   |          | ✅             |                 |                                             |                                        |
+| GPT4oMiniLiteLLM      |                   |          | ✅             |                 |                                             |                                        |
 | Gemini_1_0            |                   |          |                |                 | ✅                                          | ✅                                     |
 | Gemini_1_5            |                   |          |                |                 | ✅                                          | ✅                                     |
 | Gemini_1_5_Flash      |                   |          |                |                 | ✅                                          | ✅                                     |
 | Gorilla               |                   |          |                | ✅              |                                             |                                        |
 | Hermes                |                   |          |                | ✅              |                                             |                                        |
 | Mistral               |                   |          |                | ✅              |                                             |                                        |
+| O3MiniLiteLLM         |                   |          | ✅             |                 |                                             |                                        |
 
 The search tools in the ToolSandbox use [RapidAPI](https://rapidapi.com/hub) so in order to run those scenarios you need to have an API key and expose it in an environment variable called `RAPID_API_KEY`. Using models from the Gemini family requires setting up google authentication, e.g. by using [application default credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc).
 
@@ -58,6 +66,12 @@ The search tools in the ToolSandbox use [RapidAPI](https://rapidapi.com/hub) so 
 It is recommended to just set the environment variables for the command that is running as opposed to exporting them e.g. in your `~/.bashrc` file. This makes it less likely to accidentally use stale environment variables. Here is an example command to run a ToolSandbox scenario using GPT-4o as the user simulator and Claude 3 Haiku as the agent:
 ```
 env ANTHROPIC_API_KEY=<YOUR_ANTHROPIC_API_KEY> OPENAI_API_KEY=<YOUR_OPENAI_API_KEY> tool_sandbox --user GPT_4_o_2024_05_13 --agent Claude_3_Haiku --scenario wifi_off
+```
+
+#### Using LiteLLM Agents
+The LiteLLM agents provide universal support for 100+ model providers through a single interface. Here's an example using the GPT-4 LiteLLM agent:
+```
+env OPENAI_API_KEY=<YOUR_OPENAI_API_KEY> tool_sandbox --user GPT_4_o_2024_05_13 --agent GPT4LiteLLM --scenario wifi_off
 ```
 
 Artifacts will be stored under the `data` folder within the repository's root directory. You can for example take a look at `data/agent_claude-3-haiku-20240307_user_gpt-4o-2024-05-13_07_03_2024_00_17_44/result_summary.json` to view the evaluation results. The full dialog of each scenario is stored within a `trajectories` subdirectory, e.g. `data/agent_gpt-4o-2024-05-13_user_gpt-4o-2024-05-13_07_03_2024_00_17_44/trajectories/wifi_off/conversation.json`.
@@ -544,12 +558,12 @@ shape: (15, 5)
 To cite _ToolSandbox_:
 ```text
 @misc{lu2024toolsandboxstatefulconversationalinteractive,
-      title={ToolSandbox: A Stateful, Conversational, Interactive Evaluation Benchmark for LLM Tool Use Capabilities}, 
+      title={ToolSandbox: A Stateful, Conversational, Interactive Evaluation Benchmark for LLM Tool Use Capabilities},
       author={Jiarui Lu and Thomas Holleis and Yizhe Zhang and Bernhard Aumayer and Feng Nan and Felix Bai and Shuang Ma and Shen Ma and Mengyu Li and Guoli Yin and Zirui Wang and Ruoming Pang},
       year={2024},
       eprint={2408.04682},
       archivePrefix={arXiv},
       primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2408.04682}, 
+      url={https://arxiv.org/abs/2408.04682},
 }
 ```

@@ -6,7 +6,7 @@ from typing import Optional
 
 from tool_sandbox.common.execution_context import RoleType
 from tool_sandbox.common.message_conversion import Message
-from tool_sandbox.roles.base_role import BaseRole
+from tool_sandbox.models.base_role import BaseRole
 
 
 class UnhelpfulAgent(BaseRole):

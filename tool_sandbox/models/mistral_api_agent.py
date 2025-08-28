@@ -35,8 +35,8 @@ from tool_sandbox.common.message_conversion import (
 )
 from tool_sandbox.common.tool_conversion import convert_to_openai_tools
 from tool_sandbox.common.utils import all_logging_disabled
-from tool_sandbox.roles.base_role import BaseRole
-from tool_sandbox.roles.mistral_tool_utils import (
+from tool_sandbox.models.base_role import BaseRole
+from tool_sandbox.models.mistral_tool_utils import (
     AssistantMessage,
     AssistantMessageType,
     ChatCompletionRequest,
@@ -50,7 +50,7 @@ from tool_sandbox.roles.mistral_tool_utils import (
     UserMessage,
     UserMessageType,
 )
-from tool_sandbox.roles.mistral_tool_utils import Function as MistralFunction
+from tool_sandbox.models.mistral_tool_utils import Function as MistralFunction
 
 PROMPT_TEMPLATE_MISTRAL_TOOL_CALL = "[TOOL_CALLS]"
 MISTRAL_PATH = Path.home().joinpath("mistral_models", "7B-Instruct-v0.3")

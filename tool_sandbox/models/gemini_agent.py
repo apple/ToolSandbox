@@ -22,7 +22,7 @@ from vertexai import generative_models
 from tool_sandbox.common.execution_context import RoleType, get_current_context
 from tool_sandbox.common.message_conversion import Message
 from tool_sandbox.common.tool_conversion import convert_to_openai_tools
-from tool_sandbox.roles.base_role import BaseRole
+from tool_sandbox.models.base_role import BaseRole
 
 
 def gemini_tools_from_functions(

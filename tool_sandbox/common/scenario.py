@@ -27,7 +27,7 @@ from tool_sandbox.common.execution_context import (
     set_current_context,
 )
 from tool_sandbox.common.message_conversion import serialize_to_conversation
-from tool_sandbox.roles.base_role import BaseRole
+from tool_sandbox.models.base_role import BaseRole
 
 
 @define

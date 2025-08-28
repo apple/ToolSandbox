@@ -15,31 +15,31 @@ from tool_sandbox.common.execution_context import (
 )
 from tool_sandbox.common.scenario import Scenario
 from tool_sandbox.common.tool_discovery import ToolBackend
-from tool_sandbox.roles.anthropic_api_agent import (
+from tool_sandbox.models.anthropic_api_agent import (
     ClaudeHaikuAgent,
     ClaudeOpusAgent,
     ClaudeSonnetAgent,
 )
-from tool_sandbox.roles.base_role import BaseRole
-from tool_sandbox.roles.cli_role import CliAgent, CliUser
-from tool_sandbox.roles.cohere_agent import CohereAgent
-from tool_sandbox.roles.execution_environment import ExecutionEnvironment
-from tool_sandbox.roles.gemini_agent import GeminiAgent
-from tool_sandbox.roles.gorilla_api_agent import GorillaAPIAgent
-from tool_sandbox.roles.hermes_api_agent import HermesAPIAgent
-from tool_sandbox.roles.mistral_api_agent import MistralOpenAIServerAgent
-from tool_sandbox.roles.openai_api_agent import (
+from tool_sandbox.models.base_role import BaseRole
+from tool_sandbox.models.cli_role import CliAgent, CliUser
+from tool_sandbox.models.cohere_agent import CohereAgent
+from tool_sandbox.models.execution_environment import ExecutionEnvironment
+from tool_sandbox.models.gemini_agent import GeminiAgent
+from tool_sandbox.models.gorilla_api_agent import GorillaAPIAgent
+from tool_sandbox.models.hermes_api_agent import HermesAPIAgent
+from tool_sandbox.models.mistral_api_agent import MistralOpenAIServerAgent
+from tool_sandbox.models.openai_api_agent import (
     GPT_3_5_0125_Agent,
     GPT_4_0125_Agent,
     GPT_4_o_2024_05_13_Agent,
     O3_Mini_Agent,
 )
-from tool_sandbox.roles.openai_api_user import (
+from tool_sandbox.models.openai_api_user import (
     GPT_3_5_0125_User,
     GPT_4_0125_User,
     GPT_4_o_2024_05_13_User,
 )
-from tool_sandbox.roles.unhelpful_agent import UnhelpfulAgent
+from tool_sandbox.models.unhelpful_agent import UnhelpfulAgent
 from tool_sandbox.scenarios import named_scenarios
 
 

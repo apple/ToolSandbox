@@ -4,9 +4,12 @@ import ast
 import json
 import re
 from collections import defaultdict
-from typing import Any, Literal, Optional, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
 import polars as pl
+
+if TYPE_CHECKING:
+    import litellm
 from attrs import asdict, define, field
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from openai.types.chat.chat_completion_message_tool_call import (
@@ -387,3 +390,147 @@ def serialize_to_conversation(  # noqa: C901
                 turns[-1][current_extras_key]["minefield_matches"] = snapshot_indices_to_minefields[snapshot_index]
 
     return turns
+
+
+def to_litellm_messages(messages: list[Message]) -> list[dict[str, Any]]:
+    """Convert ToolSandbox Messages to LiteLLM format (OpenAI-compatible).
+
+    Args:
+        messages: List of ToolSandbox Message objects
+
+    Returns:
+        List of messages in LiteLLM/OpenAI format
+    """
+    litellm_messages: list[dict[str, Any]] = []
+
+    for message in messages:
+        if message.sender == RoleType.SYSTEM and message.recipient == RoleType.AGENT:
+            # System message
+            litellm_messages.append({"role": "system", "content": message.content})
+        elif message.sender == RoleType.USER and message.recipient == RoleType.AGENT:
+            # User message
+            litellm_messages.append({"role": "user", "content": message.content})
+        elif message.sender == RoleType.AGENT and message.recipient == RoleType.USER:
+            # Assistant text response
+            litellm_messages.append({"role": "assistant", "content": message.content})
+        elif message.sender == RoleType.AGENT and message.recipient == RoleType.EXECUTION_ENVIRONMENT:
+            # Assistant tool call
+            # Parse the tool call from the Python code format
+            tool_call = python_code_to_openai_tool_call(
+                python_code=message.content,
+                agent_facing_tool_name=message.openai_function_name,
+            )
+
+            # Check if we need to append to existing assistant message or create new one
+            if (
+                litellm_messages
+                and litellm_messages[-1]["role"] == "assistant"
+                and "tool_calls" in litellm_messages[-1]
+            ):
+                # Append to existing tool calls
+                litellm_messages[-1]["tool_calls"].append(
+                    {
+                        "id": tool_call.id,
+                        "type": "function",
+                        "function": {"name": tool_call.function.name, "arguments": tool_call.function.arguments},
+                    }
+                )
+            else:
+                # Create new assistant message with tool calls
+                litellm_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": tool_call.id,
+                                "type": "function",
+                                "function": {
+                                    "name": tool_call.function.name,
+                                    "arguments": tool_call.function.arguments,
+                                },
+                            }
+                        ],
+                    }
+                )
+        elif message.sender == RoleType.EXECUTION_ENVIRONMENT and message.recipient == RoleType.AGENT:
+            # Tool result
+            litellm_messages.append(
+                {"role": "tool", "content": message.content, "tool_call_id": message.openai_tool_call_id}
+            )
+        # Skip other message types that aren't relevant for LiteLLM API
+
+    return litellm_messages
+
+
+def from_litellm_response_to_messages(
+    response: "litellm.types.utils.ModelResponse",
+    sender: RoleType,
+    available_tool_names: set[str],
+    agent_to_execution_facing_tool_name: dict[str, str],
+) -> list[Message]:
+    """Convert LiteLLM response to ToolSandbox Messages.
+
+    Args:
+        response: LiteLLM ModelResponse object
+        sender: The sender role (typically RoleType.AGENT)
+        available_tool_names: Set of available tool names
+        agent_to_execution_facing_tool_name: Mapping from agent-facing to execution-facing tool names
+
+    Returns:
+        List of ToolSandbox Message objects
+    """
+    messages: list[Message] = []
+
+    if not response.choices:
+        return messages
+
+    choice = response.choices[0]
+    # Handle both streaming and non-streaming responses
+    if hasattr(choice, "message"):
+        message = choice.message
+    else:
+        return messages  # Skip streaming choices
+
+    # Check if response has tool calls
+    if hasattr(message, "tool_calls") and message.tool_calls:
+        # Handle tool calls
+        for tool_call in message.tool_calls:
+            # Create a compatible tool call object for the existing function
+            openai_tool_call = ChatCompletionMessageToolCall(
+                id=tool_call.id,
+                function=Function(
+                    name=str(tool_call.function.name) if tool_call.function.name else "",
+                    arguments=tool_call.function.arguments,
+                ),
+                type="function",
+            )
+
+            agent_facing_tool_name = str(tool_call.function.name) if tool_call.function.name else ""
+            execution_facing_tool_name = agent_to_execution_facing_tool_name.get(
+                agent_facing_tool_name, agent_facing_tool_name
+            )
+
+            messages.append(
+                Message(
+                    sender=sender,
+                    recipient=RoleType.EXECUTION_ENVIRONMENT,
+                    content=openai_tool_call_to_python_code(
+                        openai_tool_call, available_tool_names, execution_facing_tool_name
+                    ),
+                    openai_tool_call_id=str(tool_call.id),
+                    openai_function_name=agent_facing_tool_name,
+                )
+            )
+
+    # Handle text response (can exist alongside tool calls)
+    if message.content:
+        messages.append(
+            Message(
+                sender=sender,
+                recipient=RoleType.USER,
+                content=str(message.content),
+            )
+        )
+
+    return messages

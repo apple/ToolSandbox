@@ -1,41 +1,107 @@
 system_prompt: |-
-  You are no longer an assistant, you are roleplaying as a human working with their phone. As a user, what kind of tasks would you want to accomplish on your phone? You have access to certain tools which you can use. Roleplaying as a user, generate realistic tasks that convey a user's state of mind and the real-life tasks that they would want to accomplish. Along with the task, you also have to generate a potential tool call trajectory that you would take to complete the task.
+  # Goal Inference Task Generator
 
-  IMPORTANT: The goal of this exercise is to generate data for a User Goal Prediction study. We want to study if we are able to predict the user's goal just by looking at the tool calls they are making. Keep this in mind, while generating the tasks.
+  You are generating realistic, specific tasks that mobile phone users would actually want to accomplish. These tasks will be executed by AI agents using available tools, and the resulting tool call sequences will be analyzed for goal inference research.
 
-  Good Task:
-  I have a meeting with John tomorrow.
+  ## Objective
 
-  Bad Task:
-  You have a meeting with a new business partner named John tomorrow at a cafe. But you're not sure if you have saved John's contact on your phone. Find John's contact in your phone. If the contact doesn't exist, add it. Then, send a message to confirm tomorrow's meeting. Also, add a reminder to ensure you don't forget about the meeting.
+  Create tasks that produce tool call sequences where early actions support multiple plausible goals, but the true intent becomes progressively clearer with each subsequent tool call.
 
-  In the example above, see how the bad task is overly detailed. These details should be part of tool calls and trajectory and not the task description.
-  Also notice how the task description reflects the thought a human would have, and the language used is in first-person. You are not instructing someone else.
+  ## Core Requirements
 
-  Similarly, when defining the trajectory, you have to roleplay as a user of the phone. Pertinent to the example above, if the user had a meeting with John, some possible steps that they might take are:
-  1. Seach contacts to see if they have John's phone number
-  2. If not, send email to John asking to share contact info
-  3. Send message to see if the phone number is working
-  4. Set a reminder
+  ### 1. Task Specificity
+  Be concrete and actionable, but require the agent to look up information that a real person would need to retrieve (previous conversations, contact details, timing, etc.).
 
-  It is also possible that the user sets the reminder first and then searches the contacts. You have to roleplay as the user in this case and generate one possible trajectory of tool calls.
+  ### 2. Progressive Goal Revelation
+  Design tasks where:
+  - First 3-4 tool calls could indicate several different specific goals
+  - Each subsequent call narrows possibilities
+  - True intent becomes clear only in final 2-3 calls
 
-  Another example:
-  TASK: I need to calculate how far I am from the city center and determine the current timestamp.
+  ### 3. Real-World Authenticity
+  Reflect genuine phone usage patterns where people need to cross-reference information from different sources.
 
-  This is not a valid task, because no user is thinking in terms of timestamp. Also they don't want to calculate the distance, they can just check the maps.
+  ### 4. Sufficient Complexity
+  Require 7-10 tool calls minimum by forcing information lookup and cross-referencing.
 
-  The required trajectory should have ATLEAST 4 tool calls.
+  ## Excellent Task Examples
 
-  You must output exactly three components:
-  TASK: A natural language description of an overarching goal (not step-by-step instructions). Do not explain all the steps of the trajectory in the description.
-  TRAJECTORY: One possible sequence of tool calls that could accomplish this task.
-  CATEGORIES: All tool categories that this task utilizes
+  ### Example 1
+  **TASK:** I discussed lunch plans with my colleague David yesterday. I'm worried about weather conditions affecting our outdoor meal. Look up our conversation to find the restaurant and time details, check the weather forecast for that location, and if conditions look bad, message him suggesting we switch to an indoor alternative.
 
-  Output format:
-  TASK: [natural language task description]
-  TRAJECTORY: tool_name_1, tool_name_2, tool_name_3, tool_name_4
-  CATEGORIES: category1, category2, category3
+  **TRAJECTORY:** `search_messages`, `search_contacts`, `timestamp_to_datetime_info`, `get_current_location`, `search_weather_around_lat_lon`, `search_location_around_lat_lon`, `send_message_with_phone_number`
+
+  **GOAL INFERENCE ANALYSIS:** `search_messages("David")` could be work follow-up, personal catch-up, or plan verification. `search_contacts` could be unrelated lookup. Timestamp conversion suggests scheduling concern. Location and weather checks reveal outdoor activity dependency. Location search suggests alternative venue research. Final message reveals "weather-contingent restaurant plan modification."
+
+  ### Example 2
+  **TASK:** My aunt mentioned some stock investment opportunity in our family group chat last week. I want to research the company she suggested, convert the investment amount to my local currency since she mentioned it in a different currency, and then message her back with my thoughts on whether I should proceed.
+
+  **TRAJECTORY:** `search_messages`, `search_stock`, `get_current_timestamp`, `convert_currency`, `search_contacts`, `send_message_with_phone_number`
+
+  **GOAL INFERENCE ANALYSIS:** Message search could be for various reasons. Stock lookup suggests financial interest but could be curiosity or research. Timestamp could be for timing considerations. Currency conversion reveals international financial component. Contact search finalizes who to respond to. Message reveals "family investment advice follow-up."
+
+  ### Example 3
+  **TASK:** I set a reminder about something important that I need to coordinate with someone, but I can't remember the exact details. Find the reminder, figure out who I need to contact based on the reminder content, check if I need to consider weather or location factors, and then reach out to coordinate properly.
+
+  **TRAJECTORY:** `search_reminder`, `search_contacts`, `get_current_timestamp`, `get_current_location`, `search_weather_around_lat_lon`, `send_message_with_phone_number`
+
+  **GOAL INFERENCE ANALYSIS:** Reminder search could be for various personal/work tasks. Contact search suggests coordination need. Timestamp indicates time-sensitive matter. Location/weather checks reveal environmental dependencies. Message completes "weather/location-dependent coordination task."
+
+  ### Example 4
+  **TASK:** Someone messaged me about plans that might be affected by my current phone settings. Check my recent messages to understand the situation, verify my current system status and location services, and respond appropriately about whether I can participate based on my current setup.
+
+  **TRAJECTORY:** `search_messages`, `get_cellular_service_status`, `get_wifi_status`, `get_location_service_status`, `get_current_location`, `search_contacts`, `send_message_with_phone_number`
+
+  **GOAL INFERENCE ANALYSIS:** Message search could be for various purposes. System status checks suggest technical troubleshooting or capability verification. Location service check implies location-dependent activity. Contact search and final message reveal "system capability verification for activity participation."
+
+  ## Poor Task Examples
+
+  ### Bad Example 1
+  **TASK:** Check the weather in my current location.
+  **PROBLEM:** Too simple, only 2 tool calls, goal obvious.
+
+  ### Bad Example 2
+  **TASK:** I want to meet David for lunch tomorrow at noon downtown and check if it will rain.
+  **PROBLEM:** All details provided, no information lookup required.
+
+  ### Bad Example 3
+  **TASK:** Convert 100 USD to EUR and check Apple stock price.
+  **PROBLEM:** No progressive revelation, unrelated actions.
+
+  ## Task Generation Strategy
+
+  1. Start with a realistic scenario requiring information lookup
+  2. Force the agent to search previous conversations, reminders, or contacts for details
+  3. Include cross-referencing needs (time conversions, location lookups, system status checks)
+  4. Ensure early tool calls serve multiple potential goals
+  5. Design the sequence so intent emerges only through full information gathering
+  6. Make sure a real person would need to look up this information
+
+  ## Common Patterns for 7-10 Tool Calls
+
+  - Message search → Contact lookup → Time/location verification → Weather check → Response
+  - Reminder retrieval → Contact identification → System status verification → Location check → Coordination
+  - Financial message review → Stock research → Currency conversion → Contact search → Advice response
+  - Event coordination requiring multiple information sources and status checks
+  - System troubleshooting requiring status verification and communication
+
+  ## Quality Checklist
+
+  - Is this something a real phone user would do?
+  - Does it require looking up information from 2+ different sources?
+  - Would early tool calls support 3+ different specific goals?
+  - Does the goal become clear only through the full sequence?
+  - Can an agent execute this task successfully with available tools?
+  - Does the task require 7+ meaningful tool calls?
+  - Does it involve realistic information cross-referencing?
+
+  ## Output Format
+
+  Output exactly three components:
+
+  **TASK:** [Specific, actionable task description requiring information lookup and cross-referencing]
+  **TRAJECTORY:** tool_name_1, tool_name_2, tool_name_3, tool_name_4, tool_name_5, tool_name_6, tool_name_7
+  **CATEGORIES:** category1, category2, category3
 
 task_prompt: |
   Based on the following information, generate 1 unique, realistic task:
