@@ -8,7 +8,7 @@ import polars as pl
 
 from tool_sandbox.analysis.trajectory_types import (
     GoalInferenceToolCall,
-    ParsedGoalInferenceTrajectory,
+    GoalInferenceTrajectory,
     ToolCallStep,
 )
 from tool_sandbox.common.execution_context import DatabaseNamespace
@@ -17,7 +17,7 @@ from tool_sandbox.common.tool_conversion import (
 )
 
 
-def parse_trajectory_for_goal_inference(trajectory_path: str) -> ParsedGoalInferenceTrajectory:
+def parse_trajectory_for_goal_inference(trajectory_path: str) -> GoalInferenceTrajectory:
     """Parse a complete trajectory folder for goal inference research.
 
     Args:
@@ -55,7 +55,7 @@ def parse_trajectory_for_goal_inference(trajectory_path: str) -> ParsedGoalInfer
     # Create step-by-step trajectory with simple dictionary lookup
     steps = _correlate_via_lookup(tool_calls, database_changes)
 
-    return ParsedGoalInferenceTrajectory(
+    return GoalInferenceTrajectory(
         steps=steps,
         scenario_name=trajectory_dir.name,
         initial_database_state=initial_states,

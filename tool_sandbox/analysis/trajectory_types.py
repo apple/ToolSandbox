@@ -37,6 +37,15 @@ class DatabaseStateSnapshot:
 
 
 @dataclass
+class GoalInferencePrediction:
+    """Represents a model's prediction at a specific step in trajectory."""
+
+    prediction_type: str  # "wait" or "goal"
+    content: str
+    model_response: str  # Raw model output
+
+
+@dataclass
 class ToolCallStep:
     """Represents a single step in the trajectory: tool call + its database effects.
 
@@ -46,16 +55,19 @@ class ToolCallStep:
 
     tool_call: GoalInferenceToolCall
     database_changes: dict[str, list[dict[str, Any]]]  # namespace -> list of changed records
+    prediction: GoalInferencePrediction | None = None  # Model's prediction at this step
 
 
 @dataclass
-class ParsedGoalInferenceTrajectory:
-    """Complete parsed trajectory optimized for goal inference research.
+class GoalInferenceTrajectory:
+    """Complete trajectory with goal inference predictions at each step.
 
     Contains step-by-step progression where each step links a tool call to its
-    database effects, formatted for goal inference model consumption.
+    database effects and optionally includes model predictions.
     """
 
-    steps: list[ToolCallStep]  # Each step = tool call + its database effects
+    steps: list[ToolCallStep]  # Each step = tool call + database effects + optional prediction
     scenario_name: str
     initial_database_state: dict[str, list[dict[str, Any]]]  # Complete initial state for context
+    model_name: str | None = None  # Model used for predictions (if any)
+    final_prediction: str | None = None  # Last non-wait prediction

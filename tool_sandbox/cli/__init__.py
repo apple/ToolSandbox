@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
     from tool_sandbox.common.execution_context import ScenarioCategories
 
-DEFAULT_USER_TYPE = RoleImplType.GPT_4_o_2024_05_13
+DEFAULT_USER_TYPE = RoleImplType.GPT_4o
 
 
 def get_git_sha() -> Optional[str]:

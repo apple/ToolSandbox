@@ -130,6 +130,7 @@ class LiteLLMModel:
                 temperature=self.config.temperature,
                 top_p=self.config.top_p,
                 stream=False,
+                drop_params=True,  # Automatically drop unsupported OpenAI params
                 **completion_kwargs,
                 **extra_args,
             )

@@ -27,12 +27,10 @@ from tool_sandbox.models.execution_environment import ExecutionEnvironment
 from tool_sandbox.models.gemini_agent import GeminiAgent
 from tool_sandbox.models.gorilla_api_agent import GorillaAPIAgent
 from tool_sandbox.models.hermes_api_agent import HermesAPIAgent
+from tool_sandbox.models.litellm_agent import LiteLLMAgent
 from tool_sandbox.models.mistral_api_agent import MistralOpenAIServerAgent
 from tool_sandbox.models.openai_api_agent import (
-    GPT_3_5_0125_Agent,
     GPT_4_0125_Agent,
-    GPT_4_o_2024_05_13_Agent,
-    O3_Mini_Agent,
 )
 from tool_sandbox.models.openai_api_user import (
     GPT_3_5_0125_User,
@@ -50,7 +48,7 @@ class RoleImplType(StrEnum):
     Gorilla = auto()
     GPT_3_5_0125 = auto()
     GPT_4_0125 = auto()
-    GPT_4_o_2024_05_13 = auto()
+    GPT_4o = auto()
     O3_Mini = auto()
     Claude_3_Opus = auto()
     Claude_3_Sonnet = auto()
@@ -70,10 +68,9 @@ AGENT_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
     RoleImplType.Hermes: lambda: HermesAPIAgent(model_name="NousResearch/Hermes-2-Pro-Mistral-7B"),
     RoleImplType.Gorilla: lambda: GorillaAPIAgent(model_name="gorilla-llm/gorilla-openfunctions-v2"),
     RoleImplType.MistralOpenAIServer: lambda: MistralOpenAIServerAgent(model_name="mistralai/Mistral-7B-Instruct-v0.3"),
-    RoleImplType.GPT_3_5_0125: GPT_3_5_0125_Agent,
     RoleImplType.GPT_4_0125: GPT_4_0125_Agent,
-    RoleImplType.GPT_4_o_2024_05_13: GPT_4_o_2024_05_13_Agent,
-    RoleImplType.O3_Mini: O3_Mini_Agent,
+    RoleImplType.GPT_4o: lambda: LiteLLMAgent(model_name="gpt-4o"),
+    RoleImplType.O3_Mini: lambda: LiteLLMAgent(model_name="o3-mini"),
     RoleImplType.Claude_3_Opus: ClaudeOpusAgent,
     RoleImplType.Claude_3_Sonnet: ClaudeSonnetAgent,
     RoleImplType.Claude_3_Haiku: ClaudeHaikuAgent,
@@ -89,7 +86,7 @@ AGENT_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
 USER_TYPE_TO_FACTORY: dict[RoleImplType, Callable[..., BaseRole]] = {
     RoleImplType.GPT_3_5_0125: GPT_3_5_0125_User,
     RoleImplType.GPT_4_0125: GPT_4_0125_User,
-    RoleImplType.GPT_4_o_2024_05_13: GPT_4_o_2024_05_13_User,
+    RoleImplType.GPT_4o: GPT_4_o_2024_05_13_User,
     RoleImplType.Cli: CliUser,
 }
 

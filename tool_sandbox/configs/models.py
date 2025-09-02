@@ -47,7 +47,10 @@ class APIModelConfig(BaseModel):
         default="gpt4o",
         description="Full litellm model name of the model. See https://docs.litellm.ai/docs/providers",
     )
-    temperature: float = Field(default=0.7, description="The temperature for the model.")
+    temperature: float = Field(
+        default=1.0,
+        description="The temperature for the model. Default to 1.0 since OpenAI O series does not support other temperature values.",
+    )
     top_p: float = Field(default=1.0, description="The top-p value for the model.")
     max_tokens: int = Field(default=1000, description="The maximum number of tokens to generate.")
     host_url: str | None = Field(
